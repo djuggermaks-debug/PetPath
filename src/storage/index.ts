@@ -18,7 +18,7 @@ declare global {
 const tg = window.Telegram?.WebApp;
 
 function isTelegram(): boolean {
-  return !!tg?.CloudStorage;
+  return !!tg?.CloudStorage && !!window.Telegram?.WebApp?.initData;
 }
 
 // ── Telegram CloudStorage (async key-value) ──────────────────

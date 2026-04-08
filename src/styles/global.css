@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  --paper-bg: #f5f0e8;
+  --paper-dark: #ede7d3;
+  --paper-border: #c8b99a;
+  --paper-shadow: #b5a585;
+  --folder-red: #c0392b;
+  --ink: #2c1810;
+  --ink-light: #5c4033;
+  --ink-faded: #9c8878;
+
+  --tab-health: #e74c3c;
+  --tab-medications: #e67e22;
+  --tab-vaccines: #f1c40f;
+  --tab-allergies: #9b59b6;
+  --tab-nutrition: #27ae60;
+  --tab-habits: #3498db;
+  --tab-documents: #1abc9c;
+  --tab-media: #e91e63;
+
+  --tg-viewport-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--paper-bg);
+  font-family: 'Inter', sans-serif;
+  color: var(--ink);
+  overscroll-behavior: none;
+}
+
+.font-typewriter {
+  font-family: 'Special Elite', cursive;
+}
+
+/* Scrollable area */
+.scrollable {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scrollable::-webkit-scrollbar {
+  width: 3px;
+}
+.scrollable::-webkit-scrollbar-thumb {
+  background: var(--paper-border);
+  border-radius: 2px;
+}

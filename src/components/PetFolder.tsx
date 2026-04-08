@@ -3,6 +3,10 @@ import type { Pet } from '../types';
 import { MODULE_REGISTRY } from '../modules/registry';
 import { InputBar } from './InputBar';
 import { PetCard } from './PetCard';
+import { VetAnalysis } from './VetAnalysis';
+import { parseUserText } from '../ai/accountant';
+import { analyzeWithVetAgent } from '../ai/vetAgent';
+import { loadModuleData, saveModuleData } from '../storage';
 
 interface PetFolderProps {
   pet: Pet;
@@ -13,6 +17,10 @@ interface PetFolderProps {
 
 export function PetFolder({ pet, onAddPet, allPets, onSelectPet }: PetFolderProps) {
   const [activeModule, setActiveModule] = useState<string | null>(null);
+  const [parsing, setParsing] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [parseResult, setParseResult] = useState<{ count: number; modules: string[] } | null>(null);
+  const [vetAdvice, setVetAdvice] = useState<Awaited<ReturnType<typeof analyzeWithVetAgent>> | null>(null);
 
   const activeModuleData = MODULE_REGISTRY.find(m => m.id === activeModule);
   const ActiveComponent = activeModuleData?.component;
@@ -23,8 +31,55 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet }: PetFolderProp
     const now = new Date();
     const months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
     if (months < 12) return `${months} мес.`;
-    const years = Math.floor(months / 12);
-    return `${years} л.`;
+    return `${Math.floor(months / 12)} л.`;
+  };
+
+  const handleSend = async (text: string) => {
+    setParsing(true);
+    setParseResult(null);
+    try {
+      const atoms = await parseUserText(text, pet);
+      if (atoms.length === 0) {
+        setParseResult({ count: 0, modules: [] });
+        return;
+      }
+
+      // Save each atom to its module
+      for (const atom of atoms) {
+        const existing = await loadModuleData(pet.id, atom.module);
+        const entry = { id: crypto.randomUUID(), ...atom.data };
+        await saveModuleData(pet.id, atom.module, [entry, ...existing]);
+      }
+
+      const modules = [...new Set(atoms.map(a => {
+        const mod = MODULE_REGISTRY.find(m => m.id === a.module);
+        return mod ? `${mod.icon} ${mod.label}` : a.module;
+      }))];
+      setParseResult({ count: atoms.length, modules });
+
+      // Refresh active module if it received new data
+      if (activeModule && atoms.some(a => a.module === activeModule)) {
+        setActiveModule(null);
+        setTimeout(() => setActiveModule(activeModule), 50);
+      }
+    } finally {
+      setParsing(false);
+    }
+  };
+
+  const handleAnalyze = async () => {
+    setAnalyzing(true);
+    setVetAdvice(null);
+    try {
+      const allData: Record<string, unknown[]> = {};
+      for (const mod of MODULE_REGISTRY) {
+        allData[mod.id] = await loadModuleData(pet.id, mod.id);
+      }
+      const advice = await analyzeWithVetAgent(pet, allData);
+      setVetAdvice(advice);
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   return (
@@ -32,22 +87,17 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet }: PetFolderProp
       {/* Top pet tabs */}
       <div className="pet-tabs-bar">
         {allPets.map(p => (
-          <button
-            key={p.id}
+          <button key={p.id}
             className={`pet-tab ${p.id === pet.id ? 'pet-tab--active' : ''}`}
-            onClick={() => onSelectPet(p)}
-          >
-            {p.photo ? (
-              <img src={p.photo} alt={p.name} className="pet-tab-photo" />
-            ) : (
-              <span className="pet-tab-emoji">{p.species === 'dog' ? '🐕' : p.species === 'bird' ? '🐦' : '🐈'}</span>
-            )}
+            onClick={() => onSelectPet(p)}>
+            {p.photo
+              ? <img src={p.photo} alt={p.name} className="pet-tab-photo" />
+              : <span className="pet-tab-emoji">{p.species === 'dog' ? '🐕' : p.species === 'bird' ? '🐦' : '🐈'}</span>
+            }
             <span className="pet-tab-name">{p.name}</span>
           </button>
         ))}
-        <button className="pet-tab pet-tab--add" onClick={onAddPet}>
-          <span>+</span>
-        </button>
+        <button className="pet-tab pet-tab--add" onClick={onAddPet}><span>+</span></button>
       </div>
 
       {/* Folder body */}
@@ -55,28 +105,42 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet }: PetFolderProp
         {/* Side tabs */}
         <div className="side-tabs">
           {MODULE_REGISTRY.map(mod => (
-            <button
-              key={mod.id}
+            <button key={mod.id}
               className={`side-tab ${activeModule === mod.id ? 'side-tab--active' : ''} ${mod.isPremium ? 'side-tab--premium' : ''}`}
               style={{ '--tab-color': mod.color } as React.CSSProperties}
               onClick={() => setActiveModule(prev => prev === mod.id ? null : mod.id)}
-              title={mod.label}
-            >
+              title={mod.label}>
               <span className="side-tab-icon">{mod.icon}</span>
               <span className="side-tab-label">{mod.labelShort}</span>
             </button>
           ))}
         </div>
 
-        {/* Main content area */}
+        {/* Main content */}
         <div className="folder-content scrollable">
-          {/* Case header */}
           <div className="case-header">
-            <div className="case-number font-typewriter">
-              {pet.caseNumber}
-            </div>
-            <div className="case-stamp font-typewriter">АКТИВНОЕ</div>
+            <div className="case-number font-typewriter">{pet.caseNumber}</div>
+            <button
+              className={`analyze-btn font-typewriter ${analyzing ? 'analyze-btn--loading' : ''}`}
+              onClick={handleAnalyze} disabled={analyzing}>
+              {analyzing ? '...' : '🩺 Анализ'}
+            </button>
           </div>
+
+          {/* Parse result toast */}
+          {parseResult && (
+            <div className={`parse-toast ${parseResult.count === 0 ? 'parse-toast--empty' : ''}`}>
+              {parseResult.count === 0
+                ? '🤔 Не понял что записать'
+                : `✓ Записано в: ${parseResult.modules.join(', ')}`
+              }
+            </div>
+          )}
+
+          {/* Vet analysis */}
+          {vetAdvice && (
+            <VetAnalysis advice={vetAdvice} onClose={() => setVetAdvice(null)} />
+          )}
 
           {/* Active module or pet card */}
           {activeModule && ActiveComponent ? (
@@ -84,9 +148,7 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet }: PetFolderProp
               <div className="module-view-header" style={{ borderColor: activeModuleData?.color }}>
                 <span>{activeModuleData?.icon}</span>
                 <span className="font-typewriter">{activeModuleData?.label}</span>
-                {activeModuleData?.isPremium && (
-                  <span className="premium-badge">★ Premium</span>
-                )}
+                {activeModuleData?.isPremium && <span className="premium-badge">★ Premium</span>}
               </div>
               <ActiveComponent petId={pet.id} />
             </div>
@@ -96,8 +158,7 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet }: PetFolderProp
         </div>
       </div>
 
-      {/* Bottom input */}
-      <InputBar petId={pet.id} activeModule={activeModule} />
+      <InputBar petId={pet.id} activeModule={activeModule} onSend={handleSend} parsing={parsing} />
     </div>
   );
 }

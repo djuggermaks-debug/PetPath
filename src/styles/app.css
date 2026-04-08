@@ -1,3 +1,15 @@
+/* ─── LOADING ───────────────────────────────────────────── */
+.loading-screen {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper-bg);
+  color: var(--ink-faded);
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
 /* ─── ONBOARDING ─────────────────────────────────────────── */
 .onboarding-overlay {
   position: fixed;

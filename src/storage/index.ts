@@ -5,6 +5,7 @@ declare global {
   interface Window {
     Telegram?: {
       WebApp: {
+        initData: string;
         CloudStorage: {
           setItem: (key: string, value: string, cb: (err: string | null) => void) => void;
           getItem: (key: string, cb: (err: string | null, value?: string) => void) => void;

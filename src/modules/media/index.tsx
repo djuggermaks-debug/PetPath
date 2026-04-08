@@ -1,18 +1,54 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
 import type { MediaEntry } from '../../types/modules';
 import { loadModuleData, saveModuleData } from '../../storage';
 import { EmptyState } from '../../components/ModuleShared';
+import { FormSheet, Field, Input, Select } from '../../components/FormSheet';
 import { formatDate } from '../../components/ModuleShared';
-import { Trash2 } from 'lucide-react';
 
-const categoryLabel = { regular: 'Обычное', vet: 'У ветеринара', before_after: 'До/После' };
+const empty = (): Omit<MediaEntry, 'id'> => ({
+  date: new Date().toISOString().slice(0, 10),
+  type: 'photo', url: '', caption: '', category: 'regular',
+});
+
+const categoryLabel: Record<string, string> = {
+  regular: 'Обычное', vet: 'У ветеринара', before_after: 'До/После',
+};
 
 export function MediaModule({ petId }: { petId: string }) {
   const [entries, setEntries] = useState<MediaEntry[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(empty());
+  const [preview, setPreview] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    loadModuleData<MediaEntry>(petId, 'media').then(setEntries);
-  }, [petId]);
+  useEffect(() => { loadModuleData<MediaEntry>(petId, 'media').then(setEntries); }, [petId]);
+
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm(p => ({ ...p, [k]: e.target.value }));
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const url = ev.target?.result as string;
+      setPreview(url);
+      setForm(p => ({ ...p, url, type: file.type.startsWith('video') ? 'video' : 'photo' }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSave = async () => {
+    if (!form.url) return;
+    const entry: MediaEntry = { id: crypto.randomUUID(), ...form };
+    const updated = [entry, ...entries];
+    setEntries(updated);
+    await saveModuleData(petId, 'media', updated);
+    setForm(empty());
+    setPreview(null);
+    setShowForm(false);
+  };
 
   const handleDelete = async (id: string) => {
     const updated = entries.filter(e => e.id !== id);
@@ -20,27 +56,53 @@ export function MediaModule({ petId }: { petId: string }) {
     await saveModuleData(petId, 'media', updated);
   };
 
-  if (entries.length === 0) return <EmptyState label="Медиабанк" />;
-
   return (
-    <div className="media-grid">
-      {entries.map(e => (
-        <div key={e.id} className="media-item">
-          {e.type === 'photo' ? (
-            <img src={e.url} alt={e.caption ?? ''} className="media-thumb" />
-          ) : (
-            <video src={e.url} className="media-thumb" />
-          )}
-          <div className="media-item-info">
-            <span className="media-date font-typewriter">{formatDate(e.date)}</span>
-            {e.caption && <span className="media-caption">{e.caption}</span>}
-            <span className="media-category">{categoryLabel[e.category]}</span>
-          </div>
-          <button className="media-delete-btn" onClick={() => handleDelete(e.id)}>
-            <Trash2 size={12} />
-          </button>
+    <>
+      <button className="module-add-btn" onClick={() => setShowForm(true)}>
+        <Plus size={14} /> Добавить фото / видео
+      </button>
+
+      {entries.length === 0 ? <EmptyState label="Медиабанк" /> : (
+        <div className="media-grid">
+          {entries.map(e => (
+            <div key={e.id} className="media-item">
+              {e.type === 'photo'
+                ? <img src={e.url} alt={e.caption ?? ''} className="media-thumb" />
+                : <video src={e.url} className="media-thumb" />
+              }
+              <div className="media-item-info">
+                <span className="media-date font-typewriter">{formatDate(e.date)}</span>
+                {e.caption && <span className="media-caption">{e.caption}</span>}
+                <span className="media-category">{categoryLabel[e.category]}</span>
+              </div>
+              <button className="media-delete-btn" onClick={() => handleDelete(e.id)}>
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
+      )}
+
+      {showForm && (
+        <FormSheet title="Добавить медиа" onClose={() => setShowForm(false)} onSave={handleSave}>
+          <div className="media-upload-area" onClick={() => fileRef.current?.click()}>
+            {preview
+              ? <img src={preview} alt="preview" className="media-upload-preview" />
+              : <div className="media-upload-placeholder"><Plus size={24} /><span>Выбрать фото или видео</span></div>
+            }
+            <input ref={fileRef} type="file" accept="image/*,video/*" onChange={handleFile} hidden />
+          </div>
+          <Field label="Подпись"><Input placeholder="Описание фото" value={form.caption} onChange={set('caption')} /></Field>
+          <Field label="Категория">
+            <Select value={form.category} onChange={set('category')}>
+              <option value="regular">Обычное фото</option>
+              <option value="vet">У ветеринара</option>
+              <option value="before_after">До/После лечения</option>
+            </Select>
+          </Field>
+          <Field label="Дата"><Input type="date" value={form.date} onChange={set('date')} /></Field>
+        </FormSheet>
+      )}
+    </>
   );
 }

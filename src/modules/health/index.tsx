@@ -1,17 +1,37 @@
 import { useEffect, useState } from 'react';
+import { Plus } from 'lucide-react';
 import type { HealthEntry } from '../../types/modules';
 import { loadModuleData, saveModuleData } from '../../storage';
 import { EmptyState, RecordCard, severityLabel } from '../../components/ModuleShared';
+import { FormSheet, Field, Input, Select, Toggle } from '../../components/FormSheet';
 
-const typeLabel = { symptom: 'Симптом', visit: 'Визит', diagnosis: 'Диагноз' };
-const typeColor = { symptom: '#e67e22', visit: '#3498db', diagnosis: '#e74c3c' };
+const empty = (): Omit<HealthEntry, 'id'> => ({
+  date: new Date().toISOString().slice(0, 10),
+  type: 'symptom',
+  description: '',
+  vet: '', clinic: '', reason: '', result: '', diagnosis: '',
+  nextVisitDate: '', nextVisitNotify: false, severity: 'mild',
+});
 
 export function HealthModule({ petId }: { petId: string }) {
   const [entries, setEntries] = useState<HealthEntry[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(empty());
 
-  useEffect(() => {
-    loadModuleData<HealthEntry>(petId, 'health').then(setEntries);
-  }, [petId]);
+  useEffect(() => { loadModuleData<HealthEntry>(petId, 'health').then(setEntries); }, [petId]);
+
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm(p => ({ ...p, [k]: e.target.value }));
+
+  const handleSave = async () => {
+    if (!form.description.trim()) return;
+    const entry: HealthEntry = { id: crypto.randomUUID(), ...form };
+    const updated = [entry, ...entries];
+    setEntries(updated);
+    await saveModuleData(petId, 'health', updated);
+    setForm(empty());
+    setShowForm(false);
+  };
 
   const handleDelete = async (id: string) => {
     const updated = entries.filter(e => e.id !== id);
@@ -19,30 +39,81 @@ export function HealthModule({ petId }: { petId: string }) {
     await saveModuleData(petId, 'health', updated);
   };
 
-  if (entries.length === 0) return <EmptyState label="Здоровье" />;
+  const typeLabel: Record<string, string> = { symptom: 'Симптом', visit: 'Визит', diagnosis: 'Диагноз' };
+  const typeColor: Record<string, string> = { symptom: '#e67e22', visit: '#3498db', diagnosis: '#e74c3c' };
 
   return (
-    <div className="module-list">
-      {entries.map(e => (
-        <RecordCard
-          key={e.id}
-          date={e.date}
-          badge={typeLabel[e.type]}
-          badgeColor={typeColor[e.type]}
-          title={e.description}
-          fields={[
-            { label: 'Врач', value: e.vet },
-            { label: 'Клиника', value: e.clinic },
-            { label: 'Причина', value: e.reason },
-            { label: 'Результат', value: e.result },
-            { label: 'Диагноз', value: e.diagnosis },
-            { label: 'Тяжесть', value: e.severity ? severityLabel(e.severity) : undefined },
-            { label: 'Следующий визит', value: e.nextVisitDate },
-          ]}
-          notify={e.nextVisitNotify}
-          onDelete={() => handleDelete(e.id)}
-        />
-      ))}
-    </div>
+    <>
+      <button className="module-add-btn" onClick={() => setShowForm(true)}>
+        <Plus size={14} /> Добавить запись
+      </button>
+
+      {entries.length === 0 ? <EmptyState label="Здоровье" /> : (
+        <div className="module-list">
+          {entries.map(e => (
+            <RecordCard key={e.id} date={e.date}
+              badge={typeLabel[e.type]} badgeColor={typeColor[e.type]}
+              title={e.description}
+              fields={[
+                { label: 'Врач', value: e.vet },
+                { label: 'Клиника', value: e.clinic },
+                { label: 'Причина', value: e.reason },
+                { label: 'Результат', value: e.result },
+                { label: 'Диагноз', value: e.diagnosis },
+                { label: 'Тяжесть', value: e.severity ? severityLabel(e.severity) : undefined },
+                { label: 'Следующий визит', value: e.nextVisitDate },
+              ]}
+              notify={e.nextVisitNotify}
+              onDelete={() => handleDelete(e.id)}
+            />
+          ))}
+        </div>
+      )}
+
+      {showForm && (
+        <FormSheet title="Запись о здоровье" onClose={() => setShowForm(false)} onSave={handleSave}>
+          <Field label="Тип записи">
+            <Select value={form.type} onChange={set('type')}>
+              <option value="symptom">Симптом</option>
+              <option value="visit">Визит к врачу</option>
+              <option value="diagnosis">Диагноз</option>
+            </Select>
+          </Field>
+          <Field label="Дата"><Input type="date" value={form.date} onChange={set('date')} /></Field>
+          <Field label="Описание *"><Input placeholder="Опишите подробнее..." value={form.description} onChange={set('description')} /></Field>
+
+          {form.type === 'symptom' && (
+            <Field label="Тяжесть">
+              <Select value={form.severity} onChange={set('severity')}>
+                <option value="mild">Лёгкая</option>
+                <option value="moderate">Средняя</option>
+                <option value="severe">Тяжёлая</option>
+              </Select>
+            </Field>
+          )}
+
+          {(form.type === 'visit' || form.type === 'diagnosis') && (
+            <>
+              <Field label="Врач"><Input placeholder="ФИО врача" value={form.vet} onChange={set('vet')} /></Field>
+              <Field label="Клиника"><Input placeholder="Название клиники" value={form.clinic} onChange={set('clinic')} /></Field>
+              <Field label="Причина визита"><Input placeholder="Зачем обратились" value={form.reason} onChange={set('reason')} /></Field>
+              <Field label="Результат / назначения"><Input placeholder="Что сказал врач" value={form.result} onChange={set('result')} /></Field>
+            </>
+          )}
+
+          {form.type === 'diagnosis' && (
+            <Field label="Диагноз"><Input placeholder="Поставленный диагноз" value={form.diagnosis} onChange={set('diagnosis')} /></Field>
+          )}
+
+          {form.type === 'visit' && (
+            <>
+              <Field label="Следующий визит"><Input type="date" value={form.nextVisitDate} onChange={set('nextVisitDate')} /></Field>
+              <Toggle label="Уведомление о визите" checked={!!form.nextVisitNotify}
+                onChange={v => setForm(p => ({ ...p, nextVisitNotify: v }))} />
+            </>
+          )}
+        </FormSheet>
+      )}
+    </>
   );
 }

@@ -421,6 +421,131 @@
   font-family: 'Inter', sans-serif;
 }
 
+/* ─── MODULE LIST ────────────────────────────────────────── */
+.module-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 0;
+}
+
+.module-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--ink-faded);
+  font-size: 14px;
+}
+.module-empty-hint {
+  font-size: 12px;
+  margin-top: 6px;
+  opacity: 0.6;
+}
+
+/* Record card */
+.record-card {
+  background: rgba(245, 240, 232, 0.95);
+  border-bottom: 1px solid var(--paper-border);
+  padding: 10px 14px;
+}
+.record-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+.record-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.record-date {
+  font-size: 11px;
+  color: var(--ink-faded);
+  letter-spacing: 0.5px;
+}
+.record-badge {
+  font-size: 9px;
+  border: 1px solid;
+  padding: 1px 6px;
+  border-radius: 10px;
+  letter-spacing: 0.5px;
+}
+.record-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.record-notify-icon { color: #e67e22; }
+.record-delete-btn {
+  background: none;
+  border: none;
+  color: var(--ink-faded);
+  cursor: pointer;
+  padding: 2px;
+  opacity: 0.5;
+}
+.record-delete-btn:active { opacity: 1; color: #e74c3c; }
+.record-title {
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 500;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+.record-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.record-field {
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+}
+.record-field-label { color: var(--ink-faded); flex-shrink: 0; }
+.record-field-value { color: var(--ink-light); }
+
+/* Media grid */
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px;
+  padding: 8px;
+}
+.media-item {
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--paper-border);
+}
+.media-thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+.media-item-info {
+  padding: 4px 6px;
+  background: var(--paper-dark);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.media-date { font-size: 9px; color: var(--ink-faded); }
+.media-caption { font-size: 11px; color: var(--ink-light); }
+.media-category { font-size: 9px; color: var(--ink-faded); }
+.media-delete-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(44,24,16,0.6);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  padding: 3px;
+  cursor: pointer;
+}
+
 /* ─── INPUT BAR ──────────────────────────────────────────── */
 .input-bar {
   flex-shrink: 0;

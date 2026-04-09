@@ -4,9 +4,13 @@ import { MODULE_REGISTRY } from '../modules/registry';
 import { InputBar } from './InputBar';
 import { PetCard } from './PetCard';
 import { VetAnalysis } from './VetAnalysis';
+import { DevPanel } from '../dev/DevPanel';
 import { parseUserText } from '../ai/accountant';
 import { analyzeWithVetAgent } from '../ai/vetAgent';
 import { loadModuleData, saveModuleData } from '../storage';
+import { devLogger } from '../dev/logger';
+
+const DEV_MODE = new URLSearchParams(window.location.search).has('dev');
 
 interface PetFolderProps {
   pet: Pet;
@@ -49,7 +53,9 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet }: PetFolderProp
         const existing = await loadModuleData(pet.id, atom.module);
         const entry = { id: crypto.randomUUID(), ...atom.data };
         await saveModuleData(pet.id, atom.module, [entry, ...existing]);
+        devLogger.log('save', `Сохранено в модуль: ${atom.module}`, entry);
       }
+      (window as any).__devRefresh?.();
 
       const modules = [...new Set(atoms.map(a => {
         const mod = MODULE_REGISTRY.find(m => m.id === a.module);
@@ -76,6 +82,8 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet }: PetFolderProp
         allData[mod.id] = await loadModuleData(pet.id, mod.id);
       }
       const advice = await analyzeWithVetAgent(pet, allData);
+      devLogger.log('analyze', 'Ответ ветеринарного агента', advice);
+      (window as any).__devRefresh?.();
       setVetAdvice(advice);
     } finally {
       setAnalyzing(false);
@@ -158,7 +166,8 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet }: PetFolderProp
         </div>
       </div>
 
-      <InputBar petId={pet.id} activeModule={activeModule} onSend={handleSend} parsing={parsing} />
+      {DEV_MODE && <DevPanel />}
+      <InputBar petId={pet.id} activeModule={activeModule} onSend={handleSend} parsing={parsing} devMode={DEV_MODE} pet={pet} />
     </div>
   );
 }

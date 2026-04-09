@@ -1,5 +1,6 @@
 import { GEMINI_URL } from './config';
 import type { Pet } from '../types';
+import { devLogger } from '../dev/logger';
 
 export interface ParsedAtom {
   module: 'health' | 'medications' | 'vaccines' | 'allergies' | 'nutrition' | 'habits' | 'documents';
@@ -79,14 +80,25 @@ export async function parseUserText(text: string, pet: Pet): Promise<ParsedAtom[
     }),
   });
 
+  devLogger.log('parse', 'Отправлен запрос к Gemini', { text, pet: pet.name });
+
   const json = await response.json();
   const raw = json.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!raw) return [];
+
+  if (!raw) {
+    devLogger.log('error', 'Gemini не вернул ответ', json);
+    return [];
+  }
+
+  devLogger.log('parse', 'Сырой ответ Gemini', raw);
 
   try {
     const atoms = JSON.parse(raw);
-    return Array.isArray(atoms) ? atoms.filter((a: ParsedAtom) => a.confidence >= 0.7) : [];
-  } catch {
+    const filtered = Array.isArray(atoms) ? atoms.filter((a: ParsedAtom) => a.confidence >= 0.7) : [];
+    devLogger.log('parse', `Атомов распознано: ${filtered.length} из ${Array.isArray(atoms) ? atoms.length : 0}`, filtered);
+    return filtered;
+  } catch (e) {
+    devLogger.log('error', 'Ошибка парсинга JSON', { raw, error: String(e) });
     return [];
   }
 }

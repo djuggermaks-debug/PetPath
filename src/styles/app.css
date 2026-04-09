@@ -493,7 +493,7 @@
 }
 .show-vet-btn:active { opacity: 0.8; }
 
-.delete-pet-btn {
+.delete-pet-btn, .edit-pet-btn {
   padding: 9px 10px;
   background: transparent;
   border: 1.5px solid var(--paper-border);
@@ -504,6 +504,7 @@
   align-items: center;
 }
 .delete-pet-btn:active { border-color: #e74c3c; color: #e74c3c; }
+.edit-pet-btn:active { border-color: var(--ink); color: var(--ink); }
 
 .delete-confirm {
   display: flex;

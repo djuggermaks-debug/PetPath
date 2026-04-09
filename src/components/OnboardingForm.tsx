@@ -1,42 +1,60 @@
 import { useState, useRef } from 'react';
 import type { Pet } from '../types';
-import { Camera, ChevronDown } from 'lucide-react';
+import { Camera, ChevronDown, Loader } from 'lucide-react';
+import { detectPetBreed } from '../ai/breedDetector';
 
 interface OnboardingFormProps {
   onComplete: (pet: Pet) => void;
+  initialPet?: Pet;
 }
 
-export function OnboardingForm({ onComplete }: OnboardingFormProps) {
-  const [photo, setPhoto] = useState<string | null>(null);
+export function OnboardingForm({ onComplete, initialPet }: OnboardingFormProps) {
+  const isEditing = !!initialPet;
+
+  const [photo, setPhoto] = useState<string | null>(initialPet?.photo ?? null);
+  const [detectingBreed, setDetectingBreed] = useState(false);
   const [form, setForm] = useState({
-    name: '',
-    species: 'cat' as Pet['species'],
-    breed: '',
-    birthDate: '',
-    weight: '',
-    gender: 'male' as Pet['gender'],
-    color: '',
+    name: initialPet?.name ?? '',
+    species: (initialPet?.species ?? 'cat') as Pet['species'],
+    breed: initialPet?.breed ?? '',
+    birthDate: initialPet?.birthDate ?? '',
+    weight: initialPet?.weight ? String(initialPet.weight) : '',
+    gender: (initialPet?.gender ?? 'male') as Pet['gender'],
+    color: initialPet?.color ?? '',
   });
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => setPhoto(ev.target?.result as string);
+    reader.onload = async (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setPhoto(dataUrl);
+      // Auto-detect breed
+      const base64 = dataUrl.split(',')[1];
+      const mimeType = dataUrl.split(':')[1].split(';')[0];
+      setDetectingBreed(true);
+      try {
+        const breed = await detectPetBreed(base64, mimeType, form.species);
+        if (breed) setForm(prev => ({ ...prev, breed }));
+      } finally {
+        setDetectingBreed(false);
+      }
+    };
     reader.readAsDataURL(file);
   };
 
   const handleSubmit = () => {
     if (!form.name.trim()) return;
     const pet: Pet = {
-      id: crypto.randomUUID(),
+      id: initialPet?.id ?? crypto.randomUUID(),
       ...form,
       weight: parseFloat(form.weight) || 0,
       weightUnit: 'kg',
       photo: photo || undefined,
-      caseNumber: `ДЕЛ-${String(Math.floor(Math.random() * 9000) + 1000)}`,
-      createdAt: new Date().toISOString(),
+      caseNumber: initialPet?.caseNumber ?? `ДЕЛ-${String(Math.floor(Math.random() * 9000) + 1000)}`,
+      createdAt: initialPet?.createdAt ?? new Date().toISOString(),
     };
     onComplete(pet);
   };
@@ -48,8 +66,8 @@ export function OnboardingForm({ onComplete }: OnboardingFormProps) {
     <div className="onboarding-overlay">
       <div className="onboarding-card">
         <div className="onboarding-header font-typewriter">
-          <span className="stamp">НОВОЕ ДЕЛО</span>
-          <h2>Добавить питомца</h2>
+          <span className="stamp">{isEditing ? 'РЕДАКТИРОВАТЬ' : 'НОВОЕ ДЕЛО'}</span>
+          <h2>{isEditing ? 'Изменить профиль' : 'Добавить питомца'}</h2>
         </div>
 
         {/* Photo upload */}
@@ -69,12 +87,7 @@ export function OnboardingForm({ onComplete }: OnboardingFormProps) {
         <div className="form-fields">
           <div className="field-group">
             <label className="field-label font-typewriter">Кличка *</label>
-            <input
-              className="field-input"
-              placeholder="Барсик"
-              value={form.name}
-              onChange={set('name')}
-            />
+            <input className="field-input" placeholder="Барсик" value={form.name} onChange={set('name')} />
           </div>
 
           <div className="field-row">
@@ -104,24 +117,23 @@ export function OnboardingForm({ onComplete }: OnboardingFormProps) {
           </div>
 
           <div className="field-group">
-            <label className="field-label font-typewriter">Порода</label>
+            <label className="field-label font-typewriter">
+              Порода
+              {detectingBreed && <Loader size={12} className="spin" style={{ marginLeft: 6 }} />}
+            </label>
             <input
               className="field-input"
-              placeholder="Мейн-кун"
+              placeholder={detectingBreed ? 'Определяю...' : 'Мейн-кун'}
               value={form.breed}
               onChange={set('breed')}
+              disabled={detectingBreed}
             />
           </div>
 
           <div className="field-row">
             <div className="field-group">
               <label className="field-label font-typewriter">Дата рождения</label>
-              <input
-                className="field-input"
-                type="date"
-                value={form.birthDate}
-                onChange={set('birthDate')}
-              />
+              <input className="field-input" type="date" value={form.birthDate} onChange={set('birthDate')} />
             </div>
 
             <div className="field-group">
@@ -139,12 +151,7 @@ export function OnboardingForm({ onComplete }: OnboardingFormProps) {
 
           <div className="field-group">
             <label className="field-label font-typewriter">Окрас / описание</label>
-            <input
-              className="field-input"
-              placeholder="Рыжий, пушистый"
-              value={form.color}
-              onChange={set('color')}
-            />
+            <input className="field-input" placeholder="Рыжий, пушистый" value={form.color} onChange={set('color')} />
           </div>
         </div>
 
@@ -153,7 +160,7 @@ export function OnboardingForm({ onComplete }: OnboardingFormProps) {
           onClick={handleSubmit}
           disabled={!form.name.trim()}
         >
-          Завести дело
+          {isEditing ? 'Сохранить изменения' : 'Завести дело'}
         </button>
       </div>
     </div>

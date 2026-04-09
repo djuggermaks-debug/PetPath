@@ -36,6 +36,11 @@ function App() {
     else setActivePet(null);
   };
 
+  const handleUpdatePet = (updated: Pet) => {
+    setPets(prev => prev.map(p => p.id === updated.id ? updated : p));
+    setActivePet(updated);
+  };
+
   if (loading) {
     return (
       <div className="loading-screen">
@@ -57,6 +62,7 @@ function App() {
           onSelectPet={setActivePet}
           onAddPet={() => setShowOnboarding(true)}
           onDeletePet={handleDeletePet}
+          onUpdatePet={handleUpdatePet}
         />
       )}
       {showOnboarding && (

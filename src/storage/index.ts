@@ -133,7 +133,42 @@ export async function loadModuleData<T>(
   return (data?.data as T[]) ?? [];
 }
 
-// ── Legacy compat (не используется, но нужен импорт) ──────────
-export async function storageSet(): Promise<void> {}
-export async function storageGet(): Promise<null> { return null; }
-export async function storageRemove(): Promise<void> {}
+export async function updatePet(petId: string, updates: Partial<Pet>): Promise<Pet> {
+  const dbUpdates: Record<string, unknown> = {};
+  if (updates.name !== undefined) dbUpdates.name = updates.name;
+  if (updates.species !== undefined) dbUpdates.species = updates.species;
+  if (updates.breed !== undefined) dbUpdates.breed = updates.breed;
+  if (updates.birthDate !== undefined) dbUpdates.birth_date = updates.birthDate;
+  if (updates.weight !== undefined) dbUpdates.weight = updates.weight;
+  if (updates.weightUnit !== undefined) dbUpdates.weight_unit = updates.weightUnit;
+  if (updates.gender !== undefined) dbUpdates.gender = updates.gender;
+  if (updates.color !== undefined) dbUpdates.color = updates.color;
+  if (updates.photo !== undefined) {
+    if (updates.photo.startsWith('data:') || !updates.photo.startsWith('http')) {
+      const userId = getUserId();
+      dbUpdates.photo_url = await uploadPhoto(updates.photo, `${userId}/${petId}.jpg`);
+    } else {
+      dbUpdates.photo_url = updates.photo;
+    }
+  }
+
+  const { error } = await supabase.from('pets').update(dbUpdates).eq('id', petId);
+  if (error) throw error;
+
+  // Return merged pet (load fresh from DB)
+  const { data } = await supabase.from('pets').select('*').eq('id', petId).single();
+  return {
+    id: data.id,
+    name: data.name,
+    species: data.species,
+    breed: data.breed,
+    birthDate: data.birth_date,
+    weight: Number(data.weight),
+    weightUnit: data.weight_unit,
+    gender: data.gender,
+    color: data.color,
+    photo: data.photo_url ?? undefined,
+    caseNumber: data.case_number,
+    createdAt: data.created_at,
+  };
+}

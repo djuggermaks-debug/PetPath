@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import type { Pet } from '../types';
-import { Weight, Calendar, Dna, Stethoscope, Trash2 } from 'lucide-react';
+import { Weight, Calendar, Dna, Stethoscope, Trash2, Pencil } from 'lucide-react';
 
 interface PetCardProps {
   pet: Pet;
   calcAge: (birthDate: string) => string;
   onDelete: () => void;
   onShowVet?: () => void;
+  onEdit?: () => void;
 }
 
-export function PetCard({ pet, calcAge, onDelete, onShowVet }: PetCardProps) {
+export function PetCard({ pet, calcAge, onDelete, onShowVet, onEdit }: PetCardProps) {
   const [confirm, setConfirm] = useState(false);
 
   const speciesLabel = {
@@ -65,6 +66,10 @@ export function PetCard({ pet, calcAge, onDelete, onShowVet }: PetCardProps) {
         <button className="show-vet-btn font-typewriter" onClick={onShowVet}>
           <Stethoscope size={14} />
           Показать врачу
+        </button>
+
+        <button className="edit-pet-btn" onClick={onEdit} title="Редактировать профиль">
+          <Pencil size={14} />
         </button>
 
         {!confirm ? (

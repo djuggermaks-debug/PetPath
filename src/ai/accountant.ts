@@ -3,7 +3,7 @@ import type { Pet } from '../types';
 import { devLogger } from '../dev/logger';
 
 export interface ParsedAtom {
-  module: 'health' | 'medications' | 'vaccines' | 'allergies' | 'nutrition' | 'habits' | 'documents';
+  module: 'health' | 'medications' | 'vaccines' | 'allergies' | 'nutrition' | 'habits' | 'documents' | 'profile';
   confidence: number;
   data: Record<string, unknown>;
 }
@@ -35,6 +35,10 @@ habits (поведение, активность, команды, игры, со
 documents (паспорт, чип, страховка, родословная):
 { "module": "documents", "confidence": 0.9, "data": { "type": "passport"|"chip"|"insurance"|"pedigree"|"other", "title": "название", "number": "номер", "date": "YYYY-MM-DD", "expiry": "YYYY-MM-DD", "notes": "заметки" } }
 
+profile (обновление данных профиля питомца: порода, вес, дата рождения, окрас, пол):
+{ "module": "profile", "confidence": 0.9, "data": { "breed": "порода", "weight": 4.5, "birthDate": "YYYY-MM-DD", "color": "окрас", "gender": "male"|"female" } }
+Включай только те поля profile, которые явно упомянуты.
+
 ПРИМЕРЫ:
 
 Сообщение: "дал барсику таблетку энтерофурил 200мг утром"
@@ -57,6 +61,15 @@ documents (паспорт, чип, страховка, родословная):
 
 Сообщение: "оформили ветеринарный паспорт серия AB 123456"
 Ответ: [{"module":"documents","confidence":0.95,"data":{"type":"passport","title":"Ветеринарный паспорт","number":"AB 123456","date":"${TODAY}"}}]
+
+Сообщение: "Порода клепа: дворняга"
+Ответ: [{"module":"profile","confidence":0.95,"data":{"breed":"Дворняга"}}]
+
+Сообщение: "Клепа весит 4.2 кг"
+Ответ: [{"module":"profile","confidence":0.95,"data":{"weight":4.2}}]
+
+Сообщение: "Клепа серая с белыми лапками"
+Ответ: [{"module":"profile","confidence":0.9,"data":{"color":"Серая с белыми лапками"}}]
 
 ПРАВИЛА:
 - Записывай только ФАКТЫ, не намерения. "Надо дать", "надо записать", "собираюсь" — игнорируй. Только то что уже произошло.

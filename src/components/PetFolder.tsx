@@ -6,11 +6,12 @@ import { PetCard } from './PetCard';
 import { VetCard } from './VetCard';
 import { VetAnalysis } from './VetAnalysis';
 import { QuestionPrompt } from './QuestionPrompt';
+import { OnboardingForm } from './OnboardingForm';
 import { DevPanel } from '../dev/DevPanel';
 import { parseUserText, parseImageData } from '../ai/accountant';
 import { analyzeWithVetAgent } from '../ai/vetAgent';
 import { getPendingQuestions } from '../ai/questions';
-import { loadModuleData, saveModuleData, deletePet } from '../storage';
+import { loadModuleData, saveModuleData, deletePet, updatePet } from '../storage';
 import { devLogger } from '../dev/logger';
 
 const DEV_MODE = new URLSearchParams(window.location.search).has('dev');
@@ -55,9 +56,10 @@ interface PetFolderProps {
   allPets: Pet[];
   onSelectPet: (pet: Pet) => void;
   onDeletePet: (petId: string) => void;
+  onUpdatePet: (pet: Pet) => void;
 }
 
-export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet }: PetFolderProps) {
+export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, onUpdatePet }: PetFolderProps) {
   const [activeModule, setActiveModule] = useState<string | null>(null);
   const [parsing, setParsing] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -66,6 +68,7 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet }: 
   const [vetCardData, setVetCardData] = useState<Record<string, unknown[]> | null>(null);
   const [questions, setQuestions] = useState<ReturnType<typeof getPendingQuestions>>([]);
   const [inputPrefill, setInputPrefill] = useState('');
+  const [showEditForm, setShowEditForm] = useState(false);
 
   const loadQuestions = async () => {
     const allData: Record<string, unknown[]> = {};
@@ -103,8 +106,19 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet }: 
         return;
       }
 
-      // Save each atom to its module
-      for (const atom of atoms) {
+      // Handle profile atoms separately
+      const profileAtoms = atoms.filter(a => a.module === 'profile');
+      const moduleAtoms = atoms.filter(a => a.module !== 'profile');
+
+      if (profileAtoms.length > 0) {
+        const profileUpdates = Object.assign({}, ...profileAtoms.map(a => a.data));
+        devLogger.log('save', 'Обновлён профиль питомца', profileUpdates);
+        const updated = await updatePet(pet.id, profileUpdates as Partial<Pet>);
+        onUpdatePet(updated);
+      }
+
+      // Save each module atom
+      for (const atom of moduleAtoms) {
         const existing = await loadModuleData(pet.id, atom.module);
         const photo = compressedPhoto && PHOTO_MODULES.has(atom.module) ? { _photo: compressedPhoto } : {};
         const entry = { id: crypto.randomUUID(), ...atom.data, ...photo };
@@ -113,11 +127,13 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet }: 
       }
       (window as any).__devRefresh?.();
 
-      const modules = [...new Set(atoms.map(a => {
+      const allSaved = [...profileAtoms, ...moduleAtoms];
+      const modules = [...new Set(allSaved.map(a => {
+        if (a.module === 'profile') return '👤 Профиль';
         const mod = MODULE_REGISTRY.find(m => m.id === a.module);
         return mod ? `${mod.icon} ${mod.label}` : a.module;
       }))];
-      setParseResult({ count: atoms.length, modules });
+      setParseResult({ count: allSaved.length, modules });
       loadQuestions();
 
       // Refresh active module if it received new data
@@ -221,7 +237,7 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet }: 
               <ActiveComponent petId={pet.id} />
             </div>
           ) : (
-            <PetCard pet={pet} calcAge={calcAge} onShowVet={handleShowVet} onDelete={async () => {
+            <PetCard pet={pet} calcAge={calcAge} onShowVet={handleShowVet} onEdit={() => setShowEditForm(true)} onDelete={async () => {
               await deletePet(pet.id);
               onDeletePet(pet.id);
             }} />
@@ -241,6 +257,18 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet }: 
 
       {vetCardData && (
         <VetCard pet={pet} calcAge={calcAge} allData={vetCardData} onClose={() => setVetCardData(null)} />
+      )}
+
+      {showEditForm && (
+        <OnboardingForm
+          initialPet={pet}
+          onComplete={async (updated) => {
+            const saved = await updatePet(pet.id, updated);
+            onUpdatePet(saved);
+            setShowEditForm(false);
+            loadQuestions();
+          }}
+        />
       )}
     </div>
   );

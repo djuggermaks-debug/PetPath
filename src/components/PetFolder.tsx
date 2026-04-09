@@ -5,7 +5,7 @@ import { InputBar } from './InputBar';
 import { PetCard } from './PetCard';
 import { VetAnalysis } from './VetAnalysis';
 import { DevPanel } from '../dev/DevPanel';
-import { parseUserText } from '../ai/accountant';
+import { parseUserText, parseImageData } from '../ai/accountant';
 import { analyzeWithVetAgent } from '../ai/vetAgent';
 import { loadModuleData, saveModuleData, deletePet } from '../storage';
 import { devLogger } from '../dev/logger';
@@ -39,11 +39,13 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet }: 
     return `${Math.floor(months / 12)} л.`;
   };
 
-  const handleSend = async (text: string) => {
+  const handleSend = async (text: string, image?: { base64: string; mimeType: string }) => {
     setParsing(true);
     setParseResult(null);
     try {
-      const atoms = await parseUserText(text, pet);
+      const atoms = image
+        ? await parseImageData(image.base64, image.mimeType, text, pet)
+        : await parseUserText(text, pet);
       if (atoms.length === 0) {
         setParseResult({ count: 0, modules: [] });
         return;
@@ -148,7 +150,7 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet }: 
 
           {/* Vet analysis */}
           {vetAdvice && (
-            <VetAnalysis advice={vetAdvice} onClose={() => setVetAdvice(null)} />
+            <VetAnalysis advice={vetAdvice} />
           )}
 
           {/* Active module or pet card */}

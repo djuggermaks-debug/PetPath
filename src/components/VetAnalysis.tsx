@@ -1,12 +1,10 @@
-import { X } from 'lucide-react';
 import type { VetAdvice } from '../ai/vetAgent';
 
 interface VetAnalysisProps {
   advice: VetAdvice;
-  onClose: () => void;
 }
 
-export function VetAnalysis({ advice, onClose }: VetAnalysisProps) {
+export function VetAnalysis({ advice }: VetAnalysisProps) {
   const hasContent =
     advice.alerts.length > 0 ||
     advice.observations.length > 0 ||
@@ -16,7 +14,6 @@ export function VetAnalysis({ advice, onClose }: VetAnalysisProps) {
     <div className="vet-analysis">
       <div className="vet-analysis-header">
         <span className="font-typewriter">🩺 Анализ ветеринара</span>
-        <button onClick={onClose}><X size={16} /></button>
       </div>
 
       {!hasContent && (

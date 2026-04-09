@@ -934,7 +934,7 @@
   padding: 2px 0;
 }
 .input-textarea::placeholder { color: var(--ink-faded); }
-.mic-btn, .send-btn {
+.mic-btn, .send-btn, .camera-btn {
   width: 34px;
   height: 34px;
   border-radius: 8px;
@@ -954,6 +954,10 @@
   background: #e74c3c;
   color: white;
 }
+.camera-btn {
+  background: var(--paper-dark);
+  color: var(--ink-light);
+}
 .send-btn {
   background: var(--paper-dark);
   color: var(--ink-faded);
@@ -963,6 +967,38 @@
   color: var(--paper-bg);
 }
 .send-btn:disabled { cursor: default; }
+
+/* Image preview in input bar */
+.image-preview-wrap {
+  position: relative;
+  display: inline-block;
+  margin: 4px 14px 0;
+}
+.image-preview {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--paper-border);
+  display: block;
+}
+.image-preview-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper-bg);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
 .recording-indicator {
   display: flex;
   align-items: center;

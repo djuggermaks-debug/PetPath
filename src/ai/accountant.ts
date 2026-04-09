@@ -96,11 +96,30 @@ documents (паспорт, чип, страховка, родословная):
 Сообщение: "дай Дронтал, полтаблетки"
 Ответ: [{"module":"medications","confidence":0.9,"data":{"name":"Дронтал","dose":"0.5","unit":"таб","startDate":"${TODAY}","reason":"Дегельминтизация","prescribedBy":"self","notify":false}}]`;
 
+async function parseRawResponse(raw: string | undefined, json: unknown): Promise<ParsedAtom[]> {
+  if (!raw) {
+    devLogger.log('error', 'Gemini не вернул ответ', json);
+    return [];
+  }
+  devLogger.log('parse', 'Сырой ответ Gemini', raw);
+  try {
+    const atoms = JSON.parse(raw);
+    const filtered = Array.isArray(atoms) ? atoms.filter((a: ParsedAtom) => a.confidence >= 0.7) : [];
+    devLogger.log('parse', `Атомов распознано: ${filtered.length} из ${Array.isArray(atoms) ? atoms.length : 0}`, filtered);
+    return filtered;
+  } catch (e) {
+    devLogger.log('error', 'Ошибка парсинга JSON', { raw, error: String(e) });
+    return [];
+  }
+}
+
 export async function parseUserText(text: string, pet: Pet): Promise<ParsedAtom[]> {
   const prompt = `Питомец: ${pet.name} (${pet.species}${pet.breed ? ', ' + pet.breed : ''})
 Сообщение: "${text}"
 
 Верни JSON массив атомов.`;
+
+  devLogger.log('parse', 'Отправлен запрос к Gemini', { text, pet: pet.name });
 
   const response = await fetch(GEMINI_URL, {
     method: 'POST',
@@ -112,25 +131,38 @@ export async function parseUserText(text: string, pet: Pet): Promise<ParsedAtom[
     }),
   });
 
-  devLogger.log('parse', 'Отправлен запрос к Gemini', { text, pet: pet.name });
+  const json = await response.json();
+  return parseRawResponse(json.candidates?.[0]?.content?.parts?.[0]?.text, json);
+}
+
+export async function parseImageData(
+  base64: string,
+  mimeType: string,
+  caption: string,
+  pet: Pet,
+): Promise<ParsedAtom[]> {
+  const prompt = `Питомец: ${pet.name} (${pet.species}${pet.breed ? ', ' + pet.breed : ''})
+На фото — упаковка, этикетка, чек или другой объект связанный с питомцем.${caption ? `\nКомментарий владельца: "${caption}"` : ''}
+
+Распознай что на фото и верни JSON массив атомов.`;
+
+  devLogger.log('parse', 'Отправлен запрос к Gemini (фото)', { mimeType, caption, pet: pet.name });
+
+  const response = await fetch(GEMINI_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents: [{
+        parts: [
+          { inline_data: { mime_type: mimeType, data: base64 } },
+          { text: prompt },
+        ],
+      }],
+      generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
+    }),
+  });
 
   const json = await response.json();
-  const raw = json.candidates?.[0]?.content?.parts?.[0]?.text;
-
-  if (!raw) {
-    devLogger.log('error', 'Gemini не вернул ответ', json);
-    return [];
-  }
-
-  devLogger.log('parse', 'Сырой ответ Gemini', raw);
-
-  try {
-    const atoms = JSON.parse(raw);
-    const filtered = Array.isArray(atoms) ? atoms.filter((a: ParsedAtom) => a.confidence >= 0.7) : [];
-    devLogger.log('parse', `Атомов распознано: ${filtered.length} из ${Array.isArray(atoms) ? atoms.length : 0}`, filtered);
-    return filtered;
-  } catch (e) {
-    devLogger.log('error', 'Ошибка парсинга JSON', { raw, error: String(e) });
-    return [];
-  }
+  return parseRawResponse(json.candidates?.[0]?.content?.parts?.[0]?.text, json);
 }

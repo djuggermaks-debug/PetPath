@@ -113,6 +113,19 @@ export async function savePet(pet: import('../types').Pet): Promise<void> {
   }
 }
 
+export async function deletePet(petId: string): Promise<void> {
+  // Remove pet data
+  await storageRemove(`pet_${petId}`);
+  // Remove from index
+  const index = (await storageGet<string[]>(PETS_INDEX_KEY)) ?? [];
+  await storageSet(PETS_INDEX_KEY, index.filter(id => id !== petId));
+  // Remove all module data
+  const modules = ['health', 'medications', 'vaccines', 'allergies', 'nutrition', 'habits', 'documents', 'media'];
+  for (const mod of modules) {
+    await storageRemove(`module_${petId}_${mod}`);
+  }
+}
+
 export async function loadAllPets(): Promise<import('../types').Pet[]> {
   const index = (await storageGet<string[]>(PETS_INDEX_KEY)) ?? [];
   const pets = await Promise.all(

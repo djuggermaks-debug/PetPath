@@ -468,6 +468,13 @@
   background: #ddd4bb;
 }
 
+.pet-card-actions {
+  clear: both;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
 .show-vet-btn {
   clear: both;
   display: flex;
@@ -485,6 +492,44 @@
   font-family: 'Special Elite', cursive;
 }
 .show-vet-btn:active { opacity: 0.8; }
+
+.delete-pet-btn {
+  padding: 9px 10px;
+  background: transparent;
+  border: 1.5px solid var(--paper-border);
+  border-radius: 8px;
+  color: var(--ink-faded);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+.delete-pet-btn:active { border-color: #e74c3c; color: #e74c3c; }
+
+.delete-confirm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-light);
+}
+.delete-confirm-yes {
+  padding: 4px 10px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.delete-confirm-no {
+  padding: 4px 10px;
+  background: var(--paper-dark);
+  border: 1px solid var(--paper-border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--ink-light);
+}
 
 /* ─── MODULE VIEW ────────────────────────────────────────── */
 .module-view { padding: 0; }

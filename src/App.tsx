@@ -3,6 +3,7 @@ import type { Pet } from './types';
 import { OnboardingForm } from './components/OnboardingForm';
 import { PetFolder } from './components/PetFolder';
 import { loadAllPets, savePet } from './storage';
+
 import './styles/global.css';
 import './styles/app.css';
 
@@ -28,6 +29,13 @@ function App() {
     setShowOnboarding(false);
   };
 
+  const handleDeletePet = (petId: string) => {
+    const updated = pets.filter(p => p.id !== petId);
+    setPets(updated);
+    if (updated.length > 0) setActivePet(updated[0]);
+    else setActivePet(null);
+  };
+
   if (loading) {
     return (
       <div className="loading-screen">
@@ -48,6 +56,7 @@ function App() {
           allPets={pets}
           onSelectPet={setActivePet}
           onAddPet={() => setShowOnboarding(true)}
+          onDeletePet={handleDeletePet}
         />
       )}
       {showOnboarding && (

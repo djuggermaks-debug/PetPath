@@ -1,17 +1,18 @@
+import { useState } from 'react';
 import type { Pet } from '../types';
-import { Weight, Calendar, Dna, Stethoscope } from 'lucide-react';
+import { Weight, Calendar, Dna, Stethoscope, Trash2 } from 'lucide-react';
 
 interface PetCardProps {
   pet: Pet;
   calcAge: (birthDate: string) => string;
+  onDelete: () => void;
 }
 
-export function PetCard({ pet, calcAge }: PetCardProps) {
+export function PetCard({ pet, calcAge, onDelete }: PetCardProps) {
+  const [confirm, setConfirm] = useState(false);
+
   const speciesLabel = {
-    cat: 'Кошка',
-    dog: 'Собака',
-    bird: 'Птица',
-    other: 'Другое',
+    cat: 'Кошка', dog: 'Собака', bird: 'Птица', other: 'Другое',
   }[pet.species];
 
   return (
@@ -58,11 +59,25 @@ export function PetCard({ pet, calcAge }: PetCardProps) {
         )}
       </div>
 
-      {/* Show vet button */}
-      <button className="show-vet-btn font-typewriter">
-        <Stethoscope size={14} />
-        Показать врачу
-      </button>
+      {/* Buttons */}
+      <div className="pet-card-actions">
+        <button className="show-vet-btn font-typewriter">
+          <Stethoscope size={14} />
+          Показать врачу
+        </button>
+
+        {!confirm ? (
+          <button className="delete-pet-btn" onClick={() => setConfirm(true)}>
+            <Trash2 size={14} />
+          </button>
+        ) : (
+          <div className="delete-confirm">
+            <span>Удалить {pet.name}?</span>
+            <button className="delete-confirm-yes" onClick={onDelete}>Да</button>
+            <button className="delete-confirm-no" onClick={() => setConfirm(false)}>Нет</button>
+          </div>
+        )}
+      </div>
 
       {/* Decorative lines */}
       <div className="paper-lines">

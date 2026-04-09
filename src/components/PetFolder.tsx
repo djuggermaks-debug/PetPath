@@ -7,7 +7,7 @@ import { VetAnalysis } from './VetAnalysis';
 import { DevPanel } from '../dev/DevPanel';
 import { parseUserText } from '../ai/accountant';
 import { analyzeWithVetAgent } from '../ai/vetAgent';
-import { loadModuleData, saveModuleData } from '../storage';
+import { loadModuleData, saveModuleData, deletePet } from '../storage';
 import { devLogger } from '../dev/logger';
 
 const DEV_MODE = new URLSearchParams(window.location.search).has('dev');
@@ -17,9 +17,10 @@ interface PetFolderProps {
   onAddPet: () => void;
   allPets: Pet[];
   onSelectPet: (pet: Pet) => void;
+  onDeletePet: (petId: string) => void;
 }
 
-export function PetFolder({ pet, onAddPet, allPets, onSelectPet }: PetFolderProps) {
+export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet }: PetFolderProps) {
   const [activeModule, setActiveModule] = useState<string | null>(null);
   const [parsing, setParsing] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -161,7 +162,10 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet }: PetFolderProp
               <ActiveComponent petId={pet.id} />
             </div>
           ) : (
-            <PetCard pet={pet} calcAge={calcAge} />
+            <PetCard pet={pet} calcAge={calcAge} onDelete={async () => {
+              await deletePet(pet.id);
+              onDeletePet(pet.id);
+            }} />
           )}
         </div>
       </div>

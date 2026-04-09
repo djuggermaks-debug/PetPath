@@ -81,7 +81,7 @@ export function PetCard({ pet, calcAge, onDelete }: PetCardProps) {
 
       {/* Decorative lines */}
       <div className="paper-lines">
-        {Array.from({ length: 8 }).map((_, i) => (
+        {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="paper-line" />
         ))}
       </div>

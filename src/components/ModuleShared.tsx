@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, Trash2, ChevronDown } from 'lucide-react';
+import { Bell, Trash2, ChevronDown, Camera } from 'lucide-react';
 
 // ── Empty state ───────────────────────────────────────────────
 export function EmptyState({ label }: { label: string }) {
@@ -40,7 +40,8 @@ export function RecordCard({ date, badge, badgeColor, title, fields, notify, pho
         </div>
         <div className="record-card-actions">
           {notify && <Bell size={12} className="record-notify-icon" />}
-          {visibleFields.length > 0 && (
+          {photo && <Camera size={12} className="record-photo-icon" />}
+          {(visibleFields.length > 0 || !!photo) && (
             <ChevronDown size={14} className={`record-chevron ${expanded ? 'record-chevron--open' : ''}`} />
           )}
           {onDelete && (

@@ -606,6 +606,7 @@
   gap: 8px;
 }
 .record-notify-icon { color: #e67e22; }
+.record-photo-icon { color: #3498db; }
 .record-delete-btn {
   background: none;
   border: none;

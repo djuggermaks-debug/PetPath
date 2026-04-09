@@ -1,4 +1,5 @@
-import { Bell, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, Trash2, ChevronDown } from 'lucide-react';
 
 // ── Empty state ───────────────────────────────────────────────
 export function EmptyState({ label }: { label: string }) {
@@ -22,9 +23,12 @@ interface RecordCardProps {
 }
 
 export function RecordCard({ date, badge, badgeColor, title, fields, notify, onDelete }: RecordCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  const visibleFields = fields.filter(f => f.value);
+
   return (
-    <div className="record-card">
-      <div className="record-card-header">
+    <div className={`record-card ${expanded ? 'record-card--expanded' : ''}`}>
+      <div className="record-card-header" onClick={() => setExpanded(p => !p)} style={{ cursor: 'pointer' }}>
         <div className="record-card-meta">
           {date && <span className="record-date font-typewriter">{formatDate(date)}</span>}
           {badge && (
@@ -35,8 +39,11 @@ export function RecordCard({ date, badge, badgeColor, title, fields, notify, onD
         </div>
         <div className="record-card-actions">
           {notify && <Bell size={12} className="record-notify-icon" />}
+          {visibleFields.length > 0 && (
+            <ChevronDown size={14} className={`record-chevron ${expanded ? 'record-chevron--open' : ''}`} />
+          )}
           {onDelete && (
-            <button className="record-delete-btn" onClick={onDelete}>
+            <button className="record-delete-btn" onClick={e => { e.stopPropagation(); onDelete(); }}>
               <Trash2 size={12} />
             </button>
           )}
@@ -45,14 +52,16 @@ export function RecordCard({ date, badge, badgeColor, title, fields, notify, onD
 
       <p className="record-title">{title}</p>
 
-      <div className="record-fields">
-        {fields.filter(f => f.value).map(f => (
-          <div key={f.label} className="record-field">
-            <span className="record-field-label">{f.label}:</span>
-            <span className="record-field-value">{f.value}</span>
-          </div>
-        ))}
-      </div>
+      {expanded && visibleFields.length > 0 && (
+        <div className="record-fields">
+          {visibleFields.map(f => (
+            <div key={f.label} className="record-field">
+              <span className="record-field-label">{f.label}:</span>
+              <span className="record-field-value">{f.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

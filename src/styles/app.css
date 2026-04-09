@@ -614,6 +614,14 @@
   padding: 2px;
   opacity: 0.5;
 }
+.record-chevron {
+  color: var(--ink-faded);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.record-chevron--open {
+  transform: rotate(180deg);
+}
 .record-delete-btn:active { opacity: 1; color: #e74c3c; }
 .record-title {
   font-size: 14px;

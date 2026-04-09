@@ -18,16 +18,29 @@ async function compressImage(base64: string, mimeType: string): Promise<string> 
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const MAX = 800;
-      let { width, height } = img;
-      if (width > MAX || height > MAX) {
-        if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
-        else { width = Math.round(width * MAX / height); height = MAX; }
+      try {
+        const MAX = 800;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+          else { width = Math.round(width * MAX / height); height = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { devLogger.log('error', 'compressImage: нет canvas context, берём оригинал', null); resolve(base64); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+        const result = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+        devLogger.log('save', `Фото сжато: ${Math.round(result.length / 1024)}KB`);
+        resolve(result || base64);
+      } catch (e) {
+        devLogger.log('error', 'compressImage: ошибка сжатия, берём оригинал', { error: String(e) });
+        resolve(base64);
       }
-      const canvas = document.createElement('canvas');
-      canvas.width = width; canvas.height = height;
-      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', 0.7).split(',')[1]);
+    };
+    img.onerror = () => {
+      devLogger.log('error', 'compressImage: ошибка загрузки img, берём оригинал', null);
+      resolve(base64);
     };
     img.src = `data:${mimeType};base64,${base64}`;
   });

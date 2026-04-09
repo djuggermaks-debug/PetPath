@@ -50,6 +50,7 @@ export function AllergiesModule({ petId }: { petId: string }) {
             <RecordCard key={e.id} date={e.firstDate}
               badge={severityLabel(e.severity)} badgeColor={severityColor(e.severity)}
               title={`${e.allergen} (${typeLabel[e.allergenType]})`}
+              photo={e._photo}
               fields={[
                 { label: 'Реакция', value: e.reaction },
                 { label: 'Подтверждено врачом', value: e.confirmedByVet ? 'Да' : 'Нет' },

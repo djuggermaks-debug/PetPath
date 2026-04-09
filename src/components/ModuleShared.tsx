@@ -19,10 +19,11 @@ interface RecordCardProps {
   title: string;
   fields: { label: string; value: string | undefined }[];
   notify?: boolean;
+  photo?: string;
   onDelete?: () => void;
 }
 
-export function RecordCard({ date, badge, badgeColor, title, fields, notify, onDelete }: RecordCardProps) {
+export function RecordCard({ date, badge, badgeColor, title, fields, notify, photo, onDelete }: RecordCardProps) {
   const [expanded, setExpanded] = useState(false);
   const visibleFields = fields.filter(f => f.value);
 
@@ -52,7 +53,7 @@ export function RecordCard({ date, badge, badgeColor, title, fields, notify, onD
 
       <p className="record-title">{title}</p>
 
-      {expanded && visibleFields.length > 0 && (
+      {expanded && (visibleFields.length > 0 || photo) && (
         <div className="record-fields">
           {visibleFields.map(f => (
             <div key={f.label} className="record-field">
@@ -60,6 +61,13 @@ export function RecordCard({ date, badge, badgeColor, title, fields, notify, onD
               <span className="record-field-value">{f.value}</span>
             </div>
           ))}
+          {photo && (
+            <img
+              src={`data:image/jpeg;base64,${photo}`}
+              alt="фото"
+              className="record-photo"
+            />
+          )}
         </div>
       )}
     </div>

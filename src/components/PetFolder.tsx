@@ -12,6 +12,27 @@ import { devLogger } from '../dev/logger';
 
 const DEV_MODE = new URLSearchParams(window.location.search).has('dev');
 
+const PHOTO_MODULES = new Set(['health', 'allergies']);
+
+async function compressImage(base64: string, mimeType: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 800;
+      let { width, height } = img;
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+        else { width = Math.round(width * MAX / height); height = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', 0.7).split(',')[1]);
+    };
+    img.src = `data:${mimeType};base64,${base64}`;
+  });
+}
+
 interface PetFolderProps {
   pet: Pet;
   onAddPet: () => void;
@@ -46,6 +67,8 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet }: 
       const atoms = image
         ? await parseImageData(image.base64, image.mimeType, text, pet)
         : await parseUserText(text, pet);
+      const compressedPhoto = image ? await compressImage(image.base64, image.mimeType) : undefined;
+
       if (atoms.length === 0) {
         setParseResult({ count: 0, modules: [] });
         return;
@@ -54,7 +77,8 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet }: 
       // Save each atom to its module
       for (const atom of atoms) {
         const existing = await loadModuleData(pet.id, atom.module);
-        const entry = { id: crypto.randomUUID(), ...atom.data };
+        const photo = compressedPhoto && PHOTO_MODULES.has(atom.module) ? { _photo: compressedPhoto } : {};
+        const entry = { id: crypto.randomUUID(), ...atom.data, ...photo };
         await saveModuleData(pet.id, atom.module, [entry, ...existing]);
         devLogger.log('save', `Сохранено в модуль: ${atom.module}`, entry);
       }

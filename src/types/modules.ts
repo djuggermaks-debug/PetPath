@@ -15,6 +15,7 @@ export interface HealthEntry {
   severity?: 'mild' | 'moderate' | 'severe';
   // diagnosis fields
   diagnosis?: string;
+  _photo?: string;
 }
 
 // ── Medications ───────────────────────────────────────────────
@@ -54,6 +55,7 @@ export interface AllergyEntry {
   severity: 'mild' | 'moderate' | 'severe';
   firstDate?: string;
   confirmedByVet: boolean;
+  _photo?: string;
 }
 
 // ── Nutrition ─────────────────────────────────────────────────

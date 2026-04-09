@@ -54,6 +54,7 @@ export function HealthModule({ petId }: { petId: string }) {
             <RecordCard key={e.id} date={e.date}
               badge={typeLabel[e.type]} badgeColor={typeColor[e.type]}
               title={e.description}
+              photo={e._photo}
               fields={[
                 { label: 'Врач', value: e.vet },
                 { label: 'Клиника', value: e.clinic },

@@ -6,9 +6,10 @@ interface PetCardProps {
   pet: Pet;
   calcAge: (birthDate: string) => string;
   onDelete: () => void;
+  onShowVet?: () => void;
 }
 
-export function PetCard({ pet, calcAge, onDelete }: PetCardProps) {
+export function PetCard({ pet, calcAge, onDelete, onShowVet }: PetCardProps) {
   const [confirm, setConfirm] = useState(false);
 
   const speciesLabel = {
@@ -61,7 +62,7 @@ export function PetCard({ pet, calcAge, onDelete }: PetCardProps) {
 
       {/* Buttons */}
       <div className="pet-card-actions">
-        <button className="show-vet-btn font-typewriter">
+        <button className="show-vet-btn font-typewriter" onClick={onShowVet}>
           <Stethoscope size={14} />
           Показать врачу
         </button>

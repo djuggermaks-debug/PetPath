@@ -1,150 +1,139 @@
-// Storage abstraction — free tier uses Telegram CloudStorage,
-// premium tier will use Supabase (not yet implemented)
+import { supabase } from './supabase';
+import type { Pet } from '../types';
 
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp: {
-        initData: string;
-        CloudStorage: {
-          setItem: (key: string, value: string, cb: (err: string | null) => void) => void;
-          getItem: (key: string, cb: (err: string | null, value?: string) => void) => void;
-          removeItem: (key: string, cb: (err: string | null) => void) => void;
-        };
-      };
-    };
+// ── User ID ────────────────────────────────────────────────────
+
+export function getUserId(): string {
+  const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
+  if (tgUser?.id) return String(tgUser.id);
+  // Dev fallback — stable per browser
+  let devId = localStorage.getItem('_dev_uid');
+  if (!devId) {
+    devId = 'dev_' + Math.random().toString(36).slice(2, 10);
+    localStorage.setItem('_dev_uid', devId);
   }
+  return devId;
 }
 
-const tg = window.Telegram?.WebApp;
+// ── Photo upload ───────────────────────────────────────────────
 
-function isTelegram(): boolean {
-  return !!tg?.CloudStorage && !!window.Telegram?.WebApp?.initData;
+async function uploadPhoto(base64: string, path: string): Promise<string> {
+  const raw = base64.includes(',') ? base64.split(',')[1] : base64;
+  const binary = atob(raw);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const blob = new Blob([bytes], { type: 'image/jpeg' });
+
+  const { error } = await supabase.storage
+    .from('pet-photos')
+    .upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
+  if (error) throw error;
+
+  const { data } = supabase.storage.from('pet-photos').getPublicUrl(path);
+  return data.publicUrl;
 }
 
-// ── Telegram CloudStorage (async key-value) ──────────────────
+// ── Pets ───────────────────────────────────────────────────────
 
-function tgSet(key: string, value: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    tg!.CloudStorage.setItem(key, value, (err) => {
-      if (err) reject(err);
-      else resolve();
-    });
+export async function savePet(pet: Pet): Promise<void> {
+  const userId = getUserId();
+  let photoUrl: string | null = null;
+
+  if (pet.photo) {
+    if (pet.photo.startsWith('data:') || !pet.photo.startsWith('http')) {
+      // base64 → upload to Storage
+      photoUrl = await uploadPhoto(pet.photo, `${userId}/${pet.id}.jpg`);
+    } else {
+      photoUrl = pet.photo;
+    }
+  }
+
+  const { error } = await supabase.from('pets').upsert({
+    id: pet.id,
+    telegram_user_id: userId,
+    name: pet.name,
+    species: pet.species,
+    breed: pet.breed ?? '',
+    birth_date: pet.birthDate ?? '',
+    weight: pet.weight ?? 0,
+    weight_unit: pet.weightUnit ?? 'kg',
+    gender: pet.gender ?? 'male',
+    color: pet.color ?? '',
+    photo_url: photoUrl,
+    case_number: pet.caseNumber,
+    created_at: pet.createdAt,
   });
+  if (error) throw error;
 }
 
-function tgGet(key: string): Promise<string | null> {
-  return new Promise((resolve, reject) => {
-    tg!.CloudStorage.getItem(key, (err, value) => {
-      if (err) reject(err);
-      else resolve(value ?? null);
-    });
-  });
-}
+export async function loadAllPets(): Promise<Pet[]> {
+  const userId = getUserId();
+  const { data, error } = await supabase
+    .from('pets')
+    .select('*')
+    .eq('telegram_user_id', userId)
+    .order('created_at', { ascending: true });
 
-function tgRemove(key: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    tg!.CloudStorage.removeItem(key, (err) => {
-      if (err) reject(err);
-      else resolve();
-    });
-  });
-}
-
-// ── localStorage fallback (for development outside Telegram) ──
-
-function localSet(key: string, value: string): void {
-  localStorage.setItem(key, value);
-}
-
-function localGet(key: string): string | null {
-  return localStorage.getItem(key);
-}
-
-function localRemove(key: string): void {
-  localStorage.removeItem(key);
-}
-
-// ── Public API ────────────────────────────────────────────────
-
-export async function storageSet(key: string, value: unknown): Promise<void> {
-  const serialized = JSON.stringify(value);
-  if (isTelegram()) {
-    await tgSet(key, serialized);
-  } else {
-    localSet(key, serialized);
-  }
-}
-
-export async function storageGet<T>(key: string): Promise<T | null> {
-  let raw: string | null;
-  if (isTelegram()) {
-    raw = await tgGet(key);
-  } else {
-    raw = localGet(key);
-  }
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as T;
-  } catch {
-    return null;
-  }
-}
-
-export async function storageRemove(key: string): Promise<void> {
-  if (isTelegram()) {
-    await tgRemove(key);
-  } else {
-    localRemove(key);
-  }
-}
-
-// ── Pet-specific helpers ──────────────────────────────────────
-
-const PETS_INDEX_KEY = 'pets_index';
-
-export async function savePet(pet: import('../types').Pet): Promise<void> {
-  // Save pet data
-  await storageSet(`pet_${pet.id}`, pet);
-  // Update index
-  const index = (await storageGet<string[]>(PETS_INDEX_KEY)) ?? [];
-  if (!index.includes(pet.id)) {
-    await storageSet(PETS_INDEX_KEY, [...index, pet.id]);
-  }
+  if (error) throw error;
+  return (data ?? []).map(row => ({
+    id: row.id,
+    name: row.name,
+    species: row.species,
+    breed: row.breed,
+    birthDate: row.birth_date,
+    weight: Number(row.weight),
+    weightUnit: row.weight_unit,
+    gender: row.gender,
+    color: row.color,
+    photo: row.photo_url ?? undefined,
+    caseNumber: row.case_number,
+    createdAt: row.created_at,
+  }));
 }
 
 export async function deletePet(petId: string): Promise<void> {
-  // Remove pet data
-  await storageRemove(`pet_${petId}`);
-  // Remove from index
-  const index = (await storageGet<string[]>(PETS_INDEX_KEY)) ?? [];
-  await storageSet(PETS_INDEX_KEY, index.filter(id => id !== petId));
-  // Remove all module data
-  const modules = ['health', 'medications', 'vaccines', 'allergies', 'nutrition', 'habits', 'documents', 'media'];
-  for (const mod of modules) {
-    await storageRemove(`module_${petId}_${mod}`);
-  }
+  const { error } = await supabase.from('pets').delete().eq('id', petId);
+  if (error) throw error;
+  // Storage photos — best effort
+  const userId = getUserId();
+  await supabase.storage.from('pet-photos').remove([`${userId}/${petId}.jpg`]);
 }
 
-export async function loadAllPets(): Promise<import('../types').Pet[]> {
-  const index = (await storageGet<string[]>(PETS_INDEX_KEY)) ?? [];
-  const pets = await Promise.all(
-    index.map(id => storageGet<import('../types').Pet>(`pet_${id}`))
-  );
-  return pets.filter(Boolean) as import('../types').Pet[];
-}
+// ── Module data ────────────────────────────────────────────────
 
 export async function saveModuleData(
   petId: string,
   moduleId: string,
   data: unknown[]
 ): Promise<void> {
-  await storageSet(`module_${petId}_${moduleId}`, data);
+  const { error } = await supabase.from('module_data').upsert({
+    pet_id: petId,
+    module_id: moduleId,
+    data,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) throw error;
 }
 
 export async function loadModuleData<T>(
   petId: string,
   moduleId: string
 ): Promise<T[]> {
-  return (await storageGet<T[]>(`module_${petId}_${moduleId}`)) ?? [];
+  const { data, error } = await supabase
+    .from('module_data')
+    .select('data')
+    .eq('pet_id', petId)
+    .eq('module_id', moduleId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return []; // no row
+    throw error;
+  }
+  return (data?.data as T[]) ?? [];
 }
+
+// ── Legacy compat (не используется, но нужен импорт) ──────────
+export async function storageSet(): Promise<void> {}
+export async function storageGet(): Promise<null> { return null; }
+export async function storageRemove(): Promise<void> {}

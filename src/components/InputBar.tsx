@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Mic, Send, MicOff, Loader, Zap, Camera, X } from 'lucide-react';
 import { devLogger } from '../dev/logger';
 import { generateTestPhrase } from '../dev/generator';
@@ -11,15 +11,33 @@ interface InputBarProps {
   parsing: boolean;
   devMode: boolean;
   pet: Pet;
+  prefillText?: string;
+  onPrefillConsumed?: () => void;
 }
 
-export function InputBar({ activeModule, onSend, parsing, devMode, pet }: InputBarProps) {
+export function InputBar({ activeModule, onSend, parsing, devMode, pet, prefillText, onPrefillConsumed }: InputBarProps) {
   const [text, setText] = useState('');
   const [recording, setRecording] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [image, setImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!prefillText) return;
+    setText(prefillText);
+    onPrefillConsumed?.();
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+        textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
+        textareaRef.current.focus();
+        // Move cursor to end
+        const len = prefillText.length;
+        textareaRef.current.setSelectionRange(len, len);
+      }
+    }, 0);
+  }, [prefillText]);
 
   const handleSend = async () => {
     if ((!text.trim() && !image) || parsing) return;

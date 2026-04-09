@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Pet } from '../types';
 import { MODULE_REGISTRY } from '../modules/registry';
 import { InputBar } from './InputBar';
 import { PetCard } from './PetCard';
+import { VetCard } from './VetCard';
 import { VetAnalysis } from './VetAnalysis';
+import { QuestionPrompt } from './QuestionPrompt';
 import { DevPanel } from '../dev/DevPanel';
 import { parseUserText, parseImageData } from '../ai/accountant';
 import { analyzeWithVetAgent } from '../ai/vetAgent';
+import { getPendingQuestions } from '../ai/questions';
 import { loadModuleData, saveModuleData, deletePet } from '../storage';
 import { devLogger } from '../dev/logger';
 
@@ -31,7 +34,7 @@ async function compressImage(base64: string, mimeType: string): Promise<string> 
         if (!ctx) { devLogger.log('error', 'compressImage: нет canvas context, берём оригинал', null); resolve(base64); return; }
         ctx.drawImage(img, 0, 0, width, height);
         const result = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
-        devLogger.log('save', `Фото сжато: ${Math.round(result.length / 1024)}KB`);
+        devLogger.log('save', `Фото сжато: ${Math.round(result.length / 1024)}KB`, null);
         resolve(result || base64);
       } catch (e) {
         devLogger.log('error', 'compressImage: ошибка сжатия, берём оригинал', { error: String(e) });
@@ -60,6 +63,19 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet }: 
   const [analyzing, setAnalyzing] = useState(false);
   const [parseResult, setParseResult] = useState<{ count: number; modules: string[] } | null>(null);
   const [vetAdvice, setVetAdvice] = useState<Awaited<ReturnType<typeof analyzeWithVetAgent>> | null>(null);
+  const [vetCardData, setVetCardData] = useState<Record<string, unknown[]> | null>(null);
+  const [questions, setQuestions] = useState<ReturnType<typeof getPendingQuestions>>([]);
+  const [inputPrefill, setInputPrefill] = useState('');
+
+  const loadQuestions = async () => {
+    const allData: Record<string, unknown[]> = {};
+    for (const mod of MODULE_REGISTRY) {
+      allData[mod.id] = await loadModuleData(pet.id, mod.id);
+    }
+    setQuestions(getPendingQuestions(pet, allData));
+  };
+
+  useEffect(() => { loadQuestions(); }, [pet.id]);
 
   const activeModuleData = MODULE_REGISTRY.find(m => m.id === activeModule);
   const ActiveComponent = activeModuleData?.component;
@@ -102,6 +118,7 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet }: 
         return mod ? `${mod.icon} ${mod.label}` : a.module;
       }))];
       setParseResult({ count: atoms.length, modules });
+      loadQuestions();
 
       // Refresh active module if it received new data
       if (activeModule && atoms.some(a => a.module === activeModule)) {
@@ -111,6 +128,14 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet }: 
     } finally {
       setParsing(false);
     }
+  };
+
+  const handleShowVet = async () => {
+    const allData: Record<string, unknown[]> = {};
+    for (const mod of MODULE_REGISTRY) {
+      allData[mod.id] = await loadModuleData(pet.id, mod.id);
+    }
+    setVetCardData(allData);
   };
 
   const handleAnalyze = async () => {
@@ -196,7 +221,7 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet }: 
               <ActiveComponent petId={pet.id} />
             </div>
           ) : (
-            <PetCard pet={pet} calcAge={calcAge} onDelete={async () => {
+            <PetCard pet={pet} calcAge={calcAge} onShowVet={handleShowVet} onDelete={async () => {
               await deletePet(pet.id);
               onDeletePet(pet.id);
             }} />
@@ -210,7 +235,13 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet }: 
       </div>
 
       {DEV_MODE && <DevPanel />}
-      <InputBar petId={pet.id} activeModule={activeModule} onSend={handleSend} parsing={parsing} devMode={DEV_MODE} pet={pet} />
+      <QuestionPrompt questions={questions} onSelect={hint => setInputPrefill(hint)} />
+      <InputBar petId={pet.id} activeModule={activeModule} onSend={handleSend} parsing={parsing} devMode={DEV_MODE} pet={pet}
+        prefillText={inputPrefill} onPrefillConsumed={() => setInputPrefill('')} />
+
+      {vetCardData && (
+        <VetCard pet={pet} calcAge={calcAge} allData={vetCardData} onClose={() => setVetCardData(null)} />
+      )}
     </div>
   );
 }

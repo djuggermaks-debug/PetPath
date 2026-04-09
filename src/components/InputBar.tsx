@@ -33,7 +33,6 @@ export function InputBar({ activeModule, onSend, parsing, devMode, pet }: InputB
     setGenerating(true);
     try {
       const phrase = await generateTestPhrase(pet);
-      devLogger.log('generate', 'Сгенерирована фраза', phrase);
       setText(phrase);
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';

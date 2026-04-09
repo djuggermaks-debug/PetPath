@@ -148,11 +148,6 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet }: 
             </div>
           )}
 
-          {/* Vet analysis */}
-          {vetAdvice && (
-            <VetAnalysis advice={vetAdvice} />
-          )}
-
           {/* Active module or pet card */}
           {activeModule && ActiveComponent ? (
             <div className="module-view">
@@ -168,6 +163,11 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet }: 
               await deletePet(pet.id);
               onDeletePet(pet.id);
             }} />
+          )}
+
+          {/* Vet analysis — below pet card / show-to-vet button */}
+          {vetAdvice && (
+            <VetAnalysis advice={vetAdvice} />
           )}
         </div>
       </div>

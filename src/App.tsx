@@ -23,7 +23,19 @@ function App() {
   }, []);
 
   const handleAddPet = async (pet: Pet) => {
-    await savePet(pet);
+    try {
+      await savePet(pet);
+    } catch (e) {
+      console.error('savePet error:', e);
+      // Если фото не сохранилось — пробуем без него
+      try {
+        await savePet({ ...pet, photo: undefined });
+      } catch (e2) {
+        console.error('savePet without photo error:', e2);
+        alert('Ошибка сохранения: ' + String(e2));
+        return;
+      }
+    }
     setPets(prev => [...prev, pet]);
     setActivePet(pet);
     setShowOnboarding(false);

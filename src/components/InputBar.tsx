@@ -3,9 +3,7 @@ import { Mic, Send, MicOff, Loader, Zap, Camera, X } from 'lucide-react';
 import { devLogger } from '../dev/logger';
 import { generateTestPhrase } from '../dev/generator';
 import type { Pet } from '../types';
-
-const SpeechRecognitionAPI =
-  (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+import { GEMINI_URL } from '../ai/config';
 
 interface InputBarProps {
   petId: string;
@@ -18,15 +16,33 @@ interface InputBarProps {
   onPrefillConsumed?: () => void;
 }
 
+async function transcribeAudio(base64: string, mimeType: string): Promise<string> {
+  const res = await fetch(GEMINI_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{
+        parts: [
+          { inlineData: { mimeType, data: base64 } },
+          { text: 'Транскрибируй этот аудиофрагмент на русском языке. Верни только текст без пояснений.' },
+        ],
+      }],
+    }),
+  });
+  const json = await res.json();
+  return json?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
+}
+
 export function InputBar({ activeModule, onSend, parsing, devMode, pet, prefillText, onPrefillConsumed }: InputBarProps) {
   const [text, setText] = useState('');
   const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [image, setImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const recognitionRef = useRef<any>(null);
-  const interimRef = useRef('');
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     if (!prefillText) return;
@@ -37,12 +53,18 @@ export function InputBar({ activeModule, onSend, parsing, devMode, pet, prefillT
         textareaRef.current.style.height = 'auto';
         textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
         textareaRef.current.focus();
-        // Move cursor to end
         const len = prefillText.length;
         textareaRef.current.setSelectionRange(len, len);
       }
     }, 0);
   }, [prefillText]);
+
+  const resizeTextarea = () => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
+    }
+  };
 
   const handleSend = async () => {
     if ((!text.trim() && !image) || parsing) return;
@@ -54,6 +76,57 @@ export function InputBar({ activeModule, onSend, parsing, devMode, pet, prefillT
     setImage(null);
     await onSend(msg, img);
     (window as any).__devRefresh?.();
+  };
+
+  const handleMic = async () => {
+    if (recording) {
+      mediaRecorderRef.current?.stop();
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      chunksRef.current = [];
+
+      const recorder = new MediaRecorder(stream);
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        setRecording(false);
+        setTranscribing(true);
+        try {
+          const blob = new Blob(chunksRef.current, { type: recorder.mimeType });
+          const base64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const dataUrl = reader.result as string;
+              resolve(dataUrl.split(',')[1]);
+            };
+            reader.readAsDataURL(blob);
+          });
+          const mimeType = recorder.mimeType.split(';')[0];
+          const transcript = await transcribeAudio(base64, mimeType);
+          if (transcript) {
+            setText(prev => prev ? prev + ' ' + transcript : transcript);
+            setTimeout(resizeTextarea, 0);
+          }
+        } catch (e) {
+          devLogger.log('error', 'Ошибка транскрипции', { error: String(e) });
+        } finally {
+          setTranscribing(false);
+        }
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setRecording(true);
+    } catch (e) {
+      devLogger.log('error', 'Нет доступа к микрофону', { error: String(e) });
+    }
   };
 
   const handleGenerate = async () => {
@@ -78,13 +151,11 @@ export function InputBar({ activeModule, onSend, parsing, devMode, pet, prefillT
     const reader = new FileReader();
     reader.onload = (ev) => {
       const dataUrl = ev.target?.result as string;
-      // dataUrl = "data:image/jpeg;base64,XXXX"
       const [meta, base64] = dataUrl.split(',');
       const mimeType = meta.split(':')[1].split(';')[0];
       setImage({ base64, mimeType, preview: dataUrl });
     };
     reader.readAsDataURL(file);
-    // Reset input so same file can be picked again
     e.target.value = '';
   };
 
@@ -97,40 +168,6 @@ export function InputBar({ activeModule, onSend, parsing, devMode, pet, prefillT
     const el = e.target;
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-  };
-
-  const handleMic = () => {
-    if (!SpeechRecognitionAPI) return;
-
-    if (recording) {
-      recognitionRef.current?.stop();
-      return;
-    }
-
-    const recognition = new SpeechRecognitionAPI();
-    recognition.lang = 'ru-RU';
-    recognition.interimResults = true;
-    recognition.continuous = false;
-    recognitionRef.current = recognition;
-    interimRef.current = text;
-
-    recognition.onresult = (e: any) => {
-      const transcript = Array.from(e.results as any[])
-        .map((r: any) => r[0].transcript)
-        .join('');
-      const base = interimRef.current ? interimRef.current + ' ' : '';
-      setText(base + transcript);
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
-        textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
-      }
-    };
-
-    recognition.onend = () => setRecording(false);
-    recognition.onerror = () => setRecording(false);
-
-    recognition.start();
-    setRecording(true);
   };
 
   const canSend = (text.trim().length > 0 || !!image) && !parsing;
@@ -150,7 +187,6 @@ export function InputBar({ activeModule, onSend, parsing, devMode, pet, prefillT
         </button>
       )}
 
-      {/* Image preview */}
       {image && (
         <div className="image-preview-wrap">
           <img src={image.preview} alt="фото" className="image-preview" />
@@ -161,12 +197,20 @@ export function InputBar({ activeModule, onSend, parsing, devMode, pet, prefillT
       )}
 
       <div className={`input-bar-inner ${recording ? 'input-bar-inner--recording' : ''}`}>
-        <button className={`mic-btn ${recording ? 'mic-btn--active' : ''}`}
-          onClick={handleMic} type="button">
-          {recording ? <MicOff size={18} /> : <Mic size={18} />}
+        <button
+          className={`mic-btn ${recording ? 'mic-btn--active' : ''}`}
+          onClick={handleMic}
+          disabled={transcribing}
+          type="button"
+        >
+          {transcribing
+            ? <Loader size={18} className="spin" />
+            : recording
+              ? <MicOff size={18} />
+              : <Mic size={18} />
+          }
         </button>
 
-        {/* Hidden file input — no capture attr so user sees camera+gallery choice */}
         <input
           ref={fileInputRef}
           type="file"
@@ -192,7 +236,12 @@ export function InputBar({ activeModule, onSend, parsing, devMode, pet, prefillT
 
       {recording && (
         <div className="recording-indicator font-typewriter">
-          <span className="recording-dot" />Запись голоса...
+          <span className="recording-dot" />Говорите...
+        </div>
+      )}
+      {transcribing && (
+        <div className="recording-indicator font-typewriter">
+          <span className="recording-dot" style={{ background: '#3498db' }} />Распознаю речь...
         </div>
       )}
     </div>

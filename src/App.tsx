@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { Pet } from './types';
 import { OnboardingForm } from './components/OnboardingForm';
 import { PetFolder } from './components/PetFolder';
+import { WelcomeScreen } from './components/WelcomeScreen';
 import { loadAllPets, savePet } from './storage';
 
 import './styles/global.css';
@@ -11,10 +12,17 @@ function App() {
   const [pets, setPets] = useState<Pet[]>([]);
   const [activePet, setActivePet] = useState<Pet | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [isFirstLaunch, setIsFirstLaunch] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Load pets from storage on start
   useEffect(() => {
+    const welcomed = localStorage.getItem('_welcomed');
+    if (!welcomed) {
+      setIsFirstLaunch(true);
+      setShowWelcome(true);
+      localStorage.setItem('_welcomed', '1');
+    }
     loadAllPets().then(loaded => {
       setPets(loaded);
       if (loaded.length > 0) setActivePet(loaded[0]);
@@ -27,7 +35,6 @@ function App() {
       await savePet(pet);
     } catch (e) {
       console.error('savePet error:', e);
-      // Если фото не сохранилось — пробуем без него
       try {
         await savePet({ ...pet, photo: undefined });
       } catch (e2) {
@@ -61,12 +68,23 @@ function App() {
     );
   }
 
-  if (pets.length === 0 && !showOnboarding) {
-    return <OnboardingForm onComplete={handleAddPet} />;
-  }
-
   return (
     <>
+      {showWelcome && (
+        <WelcomeScreen
+          isFirstLaunch={isFirstLaunch}
+          onStart={() => {
+            setShowWelcome(false);
+            if (pets.length === 0) setShowOnboarding(true);
+          }}
+          onClose={() => setShowWelcome(false)}
+        />
+      )}
+
+      {!showWelcome && pets.length === 0 && !showOnboarding && (
+        <OnboardingForm onComplete={handleAddPet} />
+      )}
+
       {activePet && (
         <PetFolder
           pet={activePet}
@@ -75,8 +93,10 @@ function App() {
           onAddPet={() => setShowOnboarding(true)}
           onDeletePet={handleDeletePet}
           onUpdatePet={handleUpdatePet}
+          onShowHelp={() => { setIsFirstLaunch(false); setShowWelcome(true); }}
         />
       )}
+
       {showOnboarding && (
         <OnboardingForm onComplete={handleAddPet} />
       )}

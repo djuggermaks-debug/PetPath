@@ -58,9 +58,10 @@ interface PetFolderProps {
   onSelectPet: (pet: Pet) => void;
   onDeletePet: (petId: string) => void;
   onUpdatePet: (pet: Pet) => void;
+  onShowHelp: () => void;
 }
 
-export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, onUpdatePet }: PetFolderProps) {
+export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, onUpdatePet, onShowHelp }: PetFolderProps) {
   const [activeModule, setActiveModule] = useState<string | null>(null);
   const [parsing, setParsing] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -212,6 +213,7 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, on
           <div className="case-header">
             <div className="case-number font-typewriter">{pet.caseNumber}</div>
             <div className="case-header-actions">
+              <button className="help-btn" onClick={onShowHelp} title="Справка и тариф">?</button>
               <button className="edit-pet-btn" onClick={() => setShowEditForm(true)} title="Редактировать профиль">
                 <Pencil size={14} />
               </button>

@@ -4,6 +4,9 @@ import { devLogger } from '../dev/logger';
 import { generateTestPhrase } from '../dev/generator';
 import type { Pet } from '../types';
 
+const SpeechRecognitionAPI =
+  (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
 interface InputBarProps {
   petId: string;
   activeModule: string | null;
@@ -22,6 +25,8 @@ export function InputBar({ activeModule, onSend, parsing, devMode, pet, prefillT
   const [image, setImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const interimRef = useRef('');
 
   useEffect(() => {
     if (!prefillText) return;
@@ -94,6 +99,40 @@ export function InputBar({ activeModule, onSend, parsing, devMode, pet, prefillT
     el.style.height = Math.min(el.scrollHeight, 120) + 'px';
   };
 
+  const handleMic = () => {
+    if (!SpeechRecognitionAPI) return;
+
+    if (recording) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = 'ru-RU';
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognitionRef.current = recognition;
+    interimRef.current = text;
+
+    recognition.onresult = (e: any) => {
+      const transcript = Array.from(e.results as any[])
+        .map((r: any) => r[0].transcript)
+        .join('');
+      const base = interimRef.current ? interimRef.current + ' ' : '';
+      setText(base + transcript);
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+        textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
+      }
+    };
+
+    recognition.onend = () => setRecording(false);
+    recognition.onerror = () => setRecording(false);
+
+    recognition.start();
+    setRecording(true);
+  };
+
   const canSend = (text.trim().length > 0 || !!image) && !parsing;
   const placeholder = activeModule ? 'Запись в раздел...' : 'Напишите что угодно о питомце...';
 
@@ -123,7 +162,7 @@ export function InputBar({ activeModule, onSend, parsing, devMode, pet, prefillT
 
       <div className={`input-bar-inner ${recording ? 'input-bar-inner--recording' : ''}`}>
         <button className={`mic-btn ${recording ? 'mic-btn--active' : ''}`}
-          onClick={() => setRecording(p => !p)} type="button">
+          onClick={handleMic} type="button">
           {recording ? <MicOff size={18} /> : <Mic size={18} />}
         </button>
 

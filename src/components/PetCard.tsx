@@ -1,5 +1,6 @@
 import type { Pet } from '../types';
 import { Weight, Calendar, Dna, Stethoscope } from 'lucide-react';
+import { PetCalendar } from './PetCalendar';
 
 interface PetCardProps {
   pet: Pet;
@@ -64,6 +65,9 @@ export function PetCard({ pet, calcAge, onShowVet }: PetCardProps) {
           Показать врачу
         </button>
       </div>
+
+      {/* Calendar */}
+      <PetCalendar petId={pet.id} />
 
       {/* Decorative lines */}
       <div className="paper-lines">

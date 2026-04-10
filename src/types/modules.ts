@@ -92,6 +92,13 @@ export interface DocumentEntry {
   notes?: string;
 }
 
+// ── Calendar ──────────────────────────────────────────────────
+export interface CalendarEntry {
+  id: string;
+  date: string;
+  title: string;
+}
+
 // ── Media ─────────────────────────────────────────────────────
 export interface MediaEntry {
   id: string;

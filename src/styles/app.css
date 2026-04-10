@@ -1249,3 +1249,167 @@
   cursor: pointer;
   letter-spacing: 0.5px;
 }
+
+/* ── Mini Calendar ─────────────────────────────────────────── */
+.pet-calendar {
+  margin-top: 16px;
+  border-top: 1px solid var(--paper-border);
+  padding-top: 12px;
+}
+.cal-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.cal-title {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: var(--ink);
+}
+.cal-nav {
+  background: none;
+  border: 1px solid var(--paper-border);
+  border-radius: 6px;
+  padding: 3px 5px;
+  cursor: pointer;
+  color: var(--ink-faded);
+  display: flex;
+  align-items: center;
+}
+.cal-nav:active { opacity: 0.6; }
+.cal-add-btn {
+  background: none;
+  border: 1px solid var(--paper-border);
+  border-radius: 6px;
+  padding: 3px 5px;
+  cursor: pointer;
+  color: var(--ink-faded);
+  display: flex;
+  align-items: center;
+}
+.cal-add-btn:active { opacity: 0.6; }
+
+.cal-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 10px;
+  background: rgba(255,255,255,0.5);
+  border: 1px solid var(--paper-border);
+  border-radius: 8px;
+}
+.cal-input {
+  border: 1px solid var(--paper-border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  background: var(--paper-bg);
+  color: var(--ink);
+}
+.cal-save-btn {
+  padding: 6px 12px;
+  background: var(--ink);
+  color: var(--paper-bg);
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  align-self: flex-end;
+  letter-spacing: 0.5px;
+}
+
+.cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 2px;
+}
+.cal-weekday {
+  text-align: center;
+  font-size: 10px;
+  color: var(--ink-faded);
+  padding: 2px 0;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.cal-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  gap: 2px;
+}
+.cal-cell--empty { cursor: default; }
+.cal-cell:not(.cal-cell--empty):hover { background: rgba(0,0,0,0.05); }
+.cal-cell--today .cal-day {
+  background: var(--ink);
+  color: var(--paper-bg);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cal-cell--selected { background: rgba(0,0,0,0.07); }
+.cal-day { font-size: 11px; color: var(--ink); line-height: 1; }
+.cal-dots {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+}
+.cal-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  display: block;
+}
+
+.cal-events {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cal-event {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-left: 3px solid;
+  background: rgba(255,255,255,0.6);
+  border-radius: 0 6px 6px 0;
+}
+.cal-event-title {
+  font-size: 12px;
+  color: var(--ink);
+}
+.cal-event-delete {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ink-faded);
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.cal-event-delete:hover { color: #e74c3c; }
+.cal-events-empty {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--ink-faded);
+}

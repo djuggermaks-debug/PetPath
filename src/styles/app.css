@@ -283,6 +283,11 @@
   border-bottom: 1px solid var(--paper-border);
   background: rgba(245, 240, 232, 0.9);
 }
+.case-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .case-number {
   font-size: 13px;
   color: var(--ink-faded);

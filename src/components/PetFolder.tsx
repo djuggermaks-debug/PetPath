@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Pet } from '../types';
+import { Pencil, Trash2 } from 'lucide-react';
 import { MODULE_REGISTRY } from '../modules/registry';
 import { InputBar } from './InputBar';
 import { PetCard } from './PetCard';
@@ -69,6 +70,7 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, on
   const [questions, setQuestions] = useState<ReturnType<typeof getPendingQuestions>>([]);
   const [inputPrefill, setInputPrefill] = useState('');
   const [showEditForm, setShowEditForm] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const loadQuestions = async () => {
     const allData: Record<string, unknown[]> = {};
@@ -209,6 +211,22 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, on
         <div className="folder-content scrollable">
           <div className="case-header">
             <div className="case-number font-typewriter">{pet.caseNumber}</div>
+            <div className="case-header-actions">
+              <button className="edit-pet-btn" onClick={() => setShowEditForm(true)} title="Редактировать профиль">
+                <Pencil size={14} />
+              </button>
+              {!confirmDelete ? (
+                <button className="delete-pet-btn" onClick={() => setConfirmDelete(true)}>
+                  <Trash2 size={14} />
+                </button>
+              ) : (
+                <div className="delete-confirm">
+                  <span>Удалить {pet.name}?</span>
+                  <button className="delete-confirm-yes" onClick={async () => { await deletePet(pet.id); onDeletePet(pet.id); }}>Да</button>
+                  <button className="delete-confirm-no" onClick={() => setConfirmDelete(false)}>Нет</button>
+                </div>
+              )}
+            </div>
             <button
               className={`analyze-btn font-typewriter ${analyzing ? 'analyze-btn--loading' : ''}`}
               onClick={handleAnalyze} disabled={analyzing}>
@@ -237,10 +255,7 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, on
               <ActiveComponent petId={pet.id} />
             </div>
           ) : (
-            <PetCard pet={pet} calcAge={calcAge} onShowVet={handleShowVet} onEdit={() => setShowEditForm(true)} onDelete={async () => {
-              await deletePet(pet.id);
-              onDeletePet(pet.id);
-            }} />
+            <PetCard pet={pet} calcAge={calcAge} onShowVet={handleShowVet} />
           )}
 
           {/* Vet analysis — below pet card / show-to-vet button */}

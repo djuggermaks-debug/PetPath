@@ -85,7 +85,13 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, on
     setQuestions(getPendingQuestions(pet, allData));
   };
 
-  useEffect(() => { loadQuestions(); }, [pet.id]);
+  useEffect(() => {
+    loadQuestions();
+    setVetAdvice(null);
+    setVetCardData(null);
+    setParseResult(null);
+    setActiveModule(null);
+  }, [pet.id]);
 
   const activeModuleData = MODULE_REGISTRY.find(m => m.id === activeModule);
   const ActiveComponent = activeModuleData?.component;

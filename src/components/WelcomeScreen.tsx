@@ -1,9 +1,14 @@
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { useState } from 'react';
+import { X, Loader } from 'lucide-react';
+import { getUserId } from '../storage';
+
+const SUPABASE_URL = 'https://qkraaygwvnwzotyqdnlx.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_gHQhjhxovzymM7ELtSyxrg_Lq3XQduP';
 
 interface WelcomeScreenProps {
   onStart: () => void;
-  onClose?: () => void; // если открыт через кнопку ? (не первый запуск)
+  onClose?: () => void;
   isFirstLaunch: boolean;
 }
 
@@ -16,6 +21,39 @@ const FEATURES = [
 ];
 
 export function WelcomeScreen({ onStart, onClose, isFirstLaunch }: WelcomeScreenProps) {
+  const [buying, setBuying] = useState(false);
+  const [buyError, setBuyError] = useState('');
+
+  const handleBuy = async () => {
+    const tg = (window as any).Telegram?.WebApp;
+    if (!tg) {
+      setBuyError('Откройте приложение в Telegram');
+      return;
+    }
+    setBuying(true);
+    setBuyError('');
+    try {
+      const userId = getUserId();
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/create-invoice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+        body: JSON.stringify({ user_id: userId }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      tg.openInvoice(data.link, (status: string) => {
+        if (status === 'paid') {
+          tg.showAlert('✅ Оплата прошла! Premium активирован на 30 дней.');
+          onClose?.();
+        }
+      });
+    } catch (e) {
+      setBuyError('Ошибка: ' + String(e));
+    } finally {
+      setBuying(false);
+    }
+  };
+
   return createPortal(
     <div className="welcome-overlay">
       <div className="welcome-card">
@@ -55,12 +93,17 @@ export function WelcomeScreen({ onStart, onClose, isFirstLaunch }: WelcomeScreen
             <span className="welcome-price-badge font-typewriter">-50% только сейчас</span>
           </div>
           <p className="welcome-price-hint">
-            ⭐ Звёзды покупаются прямо в Telegram — Settings → Telegram Stars, или нажав на любой профиль → Отправить подарок
+            ⭐ Звёзды покупаются в Telegram — Settings → Telegram Stars
           </p>
+
+          <button className="welcome-buy-btn font-typewriter" onClick={handleBuy} disabled={buying}>
+            {buying ? <><Loader size={14} className="spin" /> Загрузка...</> : '⭐ Купить Premium — 650 Stars'}
+          </button>
+          {buyError && <p className="welcome-buy-error">{buyError}</p>}
         </div>
 
         <button className="welcome-start-btn font-typewriter" onClick={onStart}>
-          {isFirstLaunch ? 'Начать бесплатно →' : 'Понятно'}
+          {isFirstLaunch ? 'Начать бесплатно →' : 'Закрыть'}
         </button>
       </div>
     </div>,

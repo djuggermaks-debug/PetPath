@@ -1647,8 +1647,34 @@
   line-height: 1.5;
 }
 
+.welcome-buy-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  background: #f4b400;
+  color: #1a1a1a;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.welcome-buy-btn:active { opacity: 0.85; }
+.welcome-buy-btn:disabled { opacity: 0.6; }
+
+.welcome-buy-error {
+  font-size: 11px;
+  color: #e74c3c;
+  margin: 6px 0 0;
+}
+
 .welcome-start-btn {
   width: 100%;
+  margin-top: 12px;
   padding: 14px;
   background: var(--ink);
   color: var(--paper-bg);

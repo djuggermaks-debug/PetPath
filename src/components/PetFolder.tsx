@@ -19,7 +19,7 @@ import type { UserInfo } from '../hooks/useUserStatus';
 
 const DEV_MODE = new URLSearchParams(window.location.search).has('dev');
 
-const PHOTO_MODULES = new Set(['health', 'allergies', 'items']);
+const PHOTO_MODULES = new Set(['health', 'allergies', 'items', 'expenses']);
 
 async function compressImage(base64: string, mimeType: string): Promise<string> {
   return new Promise((resolve) => {

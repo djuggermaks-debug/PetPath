@@ -3,7 +3,7 @@ import type { Pet } from '../types';
 import { devLogger } from '../dev/logger';
 
 export interface ParsedAtom {
-  module: 'health' | 'medications' | 'vaccines' | 'allergies' | 'nutrition' | 'habits' | 'documents' | 'items' | 'profile';
+  module: 'health' | 'medications' | 'vaccines' | 'allergies' | 'nutrition' | 'habits' | 'documents' | 'items' | 'expenses' | 'profile';
   confidence: number;
   data: Record<string, unknown>;
 }
@@ -34,6 +34,9 @@ habits (поведение, активность, команды, игры, со
 
 documents (паспорт, чип, страховка, родословная):
 { "module": "documents", "confidence": 0.9, "data": { "type": "passport"|"chip"|"insurance"|"pedigree"|"other", "title": "название", "number": "номер", "date": "YYYY-MM-DD", "expiry": "YYYY-MM-DD", "notes": "заметки" } }
+
+expenses (расходы на питомца: оплата корма, визита, груминга, покупки):
+{ "module": "expenses", "confidence": 0.9, "data": { "date": "YYYY-MM-DD", "amount": 500, "currency": "₽", "category": "food"|"health"|"grooming"|"items"|"other", "description": "описание", "shop": "магазин или клиника" } }
 
 items (вещи питомца: игрушки, лежанки, миски, поводки, одежда, клетки, переноски, любые предметы — в т.ч. с чеков):
 { "module": "items", "confidence": 0.9, "data": { "name": "название", "category": "toy"|"bed"|"feeder"|"leash"|"clothing"|"cage"|"other", "condition": "new"|"used"|"worn", "reaction": "loves"|"likes"|"ignores"|"afraid", "purchaseDate": "YYYY-MM-DD", "notes": "заметки" } }
@@ -70,6 +73,12 @@ profile (обновление данных профиля питомца: пор
 
 Сообщение: "любимая чесалка"
 Ответ: [{"module":"items","confidence":0.9,"data":{"name":"Чесалка","category":"toy","reaction":"loves","purchaseDate":"${TODAY}"}}]
+
+Сообщение: "потратил 1200 рублей на корм роял канин в зоомагазине"
+Ответ: [{"module":"expenses","confidence":0.95,"data":{"date":"${TODAY}","amount":1200,"currency":"₽","category":"food","description":"Корм Royal Canin","shop":"зоомагазин"}}]
+
+Сообщение: "визит к ветеринару обошёлся в 3500₽"
+Ответ: [{"module":"expenses","confidence":0.95,"data":{"date":"${TODAY}","amount":3500,"currency":"₽","category":"health","description":"Визит к ветеринару"}}]
 
 Сообщение: "Порода клепа: дворняга"
 Ответ: [{"module":"profile","confidence":0.95,"data":{"breed":"Дворняга"}}]

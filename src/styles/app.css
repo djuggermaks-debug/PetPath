@@ -591,6 +591,23 @@
   padding: 8px 0;
 }
 
+.expenses-total {
+  text-align: right;
+  font-size: 13px;
+  color: var(--ink-faded);
+  padding: 4px 0 8px;
+  border-bottom: 1px solid var(--paper-border);
+  margin-bottom: 8px;
+}
+.photo-upload-small {
+  border: 1px dashed var(--paper-border);
+  border-radius: 8px;
+  padding: 12px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .module-empty {
   padding: 32px 16px;
   text-align: center;

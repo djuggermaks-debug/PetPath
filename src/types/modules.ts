@@ -104,6 +104,18 @@ export interface ItemEntry {
   _photo?: string;
 }
 
+// ── Expenses ──────────────────────────────────────────────────
+export interface ExpenseEntry {
+  id: string;
+  date: string;
+  amount: number;
+  currency: string;
+  category: 'food' | 'health' | 'grooming' | 'items' | 'other';
+  description: string;
+  shop?: string;
+  _photo?: string;
+}
+
 // ── Calendar ──────────────────────────────────────────────────
 export interface CalendarEntry {
   id: string;

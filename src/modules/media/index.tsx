@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Pencil } from 'lucide-react';
 import type { MediaEntry } from '../../types/modules';
 import { loadModuleData, saveModuleData } from '../../storage';
 import { EmptyState } from '../../components/ModuleShared';
@@ -20,6 +20,7 @@ export function MediaModule({ petId }: { petId: string }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(empty());
   const [preview, setPreview] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { loadModuleData<MediaEntry>(petId, 'media').then(setEntries); }, [petId]);
@@ -39,15 +40,27 @@ export function MediaModule({ petId }: { petId: string }) {
     reader.readAsDataURL(file);
   };
 
+  const handleEdit = (entry: MediaEntry) => {
+    const { id, ...rest } = entry;
+    setForm(rest);
+    setPreview(entry.url);
+    setEditingId(id);
+    setShowForm(true);
+  };
+
+  const handleClose = () => { setShowForm(false); setForm(empty()); setPreview(null); setEditingId(null); };
+
   const handleSave = async () => {
     if (!form.url) return;
-    const entry: MediaEntry = { id: crypto.randomUUID(), ...form };
-    const updated = [entry, ...entries];
+    let updated: MediaEntry[];
+    if (editingId) {
+      updated = entries.map(e => e.id === editingId ? { id: editingId, ...form } : e);
+    } else {
+      updated = [{ id: crypto.randomUUID(), ...form }, ...entries];
+    }
     setEntries(updated);
     await saveModuleData(petId, 'media', updated);
-    setForm(empty());
-    setPreview(null);
-    setShowForm(false);
+    handleClose();
   };
 
   const handleDelete = async (id: string) => {
@@ -75,6 +88,9 @@ export function MediaModule({ petId }: { petId: string }) {
                 {e.caption && <span className="media-caption">{e.caption}</span>}
                 <span className="media-category">{categoryLabel[e.category]}</span>
               </div>
+              <button className="media-edit-btn" onClick={() => handleEdit(e)}>
+                <Pencil size={12} />
+              </button>
               <button className="media-delete-btn" onClick={() => handleDelete(e.id)}>
                 <Trash2 size={12} />
               </button>
@@ -84,7 +100,7 @@ export function MediaModule({ petId }: { petId: string }) {
       )}
 
       {showForm && (
-        <FormSheet title="Добавить медиа" onClose={() => setShowForm(false)} onSave={handleSave}>
+        <FormSheet title={editingId ? 'Редактировать медиа' : 'Добавить медиа'} onClose={handleClose} onSave={handleSave}>
           <div className="media-upload-area" onClick={() => fileRef.current?.click()}>
             {preview
               ? <img src={preview} alt="preview" className="media-upload-preview" />

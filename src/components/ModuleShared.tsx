@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, Trash2, ChevronDown, Camera } from 'lucide-react';
+import { Bell, Trash2, ChevronDown, Camera, Pencil } from 'lucide-react';
 
 // ── Empty state ───────────────────────────────────────────────
 export function EmptyState({ label }: { label: string }) {
@@ -21,9 +21,10 @@ interface RecordCardProps {
   notify?: boolean;
   photo?: string;
   onDelete?: () => void;
+  onEdit?: () => void;
 }
 
-export function RecordCard({ date, badge, badgeColor, title, fields, notify, photo, onDelete }: RecordCardProps) {
+export function RecordCard({ date, badge, badgeColor, title, fields, notify, photo, onDelete, onEdit }: RecordCardProps) {
   const [expanded, setExpanded] = useState(false);
   const visibleFields = fields.filter(f => f.value);
 
@@ -43,6 +44,11 @@ export function RecordCard({ date, badge, badgeColor, title, fields, notify, pho
           {photo && <Camera size={12} className="record-photo-icon" />}
           {(visibleFields.length > 0 || !!photo) && (
             <ChevronDown size={14} className={`record-chevron ${expanded ? 'record-chevron--open' : ''}`} />
+          )}
+          {onEdit && (
+            <button className="record-edit-btn" onClick={e => { e.stopPropagation(); onEdit(); }}>
+              <Pencil size={12} />
+            </button>
           )}
           {onDelete && (
             <button className="record-delete-btn" onClick={e => { e.stopPropagation(); onDelete(); }}>

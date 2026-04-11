@@ -17,19 +17,32 @@ export function NutritionModule({ petId }: { petId: string }) {
   const [entries, setEntries] = useState<NutritionEntry[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(empty());
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => { loadModuleData<NutritionEntry>(petId, 'nutrition').then(setEntries); }, [petId]);
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(p => ({ ...p, [k]: e.target.value }));
 
+  const handleEdit = (entry: NutritionEntry) => {
+    const { id, ...rest } = entry;
+    setForm(rest);
+    setEditingId(id);
+    setShowForm(true);
+  };
+
+  const handleClose = () => { setShowForm(false); setForm(empty()); setEditingId(null); };
+
   const handleSave = async () => {
-    const entry: NutritionEntry = { id: crypto.randomUUID(), ...form };
-    const updated = [entry, ...entries];
+    let updated: NutritionEntry[];
+    if (editingId) {
+      updated = entries.map(e => e.id === editingId ? { id: editingId, ...form } : e);
+    } else {
+      updated = [{ id: crypto.randomUUID(), ...form }, ...entries];
+    }
     setEntries(updated);
     await saveModuleData(petId, 'nutrition', updated);
-    setForm(empty());
-    setShowForm(false);
+    handleClose();
   };
 
   const handleDelete = async (id: string) => {
@@ -58,6 +71,7 @@ export function NutritionModule({ petId }: { petId: string }) {
                 { label: 'Не ест', value: e.dislikes },
                 { label: 'Реакция', value: e.reaction },
               ]}
+              onEdit={() => handleEdit(e)}
               onDelete={() => handleDelete(e.id)}
             />
           ))}
@@ -65,7 +79,7 @@ export function NutritionModule({ petId }: { petId: string }) {
       )}
 
       {showForm && (
-        <FormSheet title="Добавить питание" onClose={() => setShowForm(false)} onSave={handleSave}>
+        <FormSheet title={editingId ? 'Редактировать питание' : 'Добавить питание'} onClose={handleClose} onSave={handleSave}>
           <Field label="Тип корма">
             <Select value={form.feedType} onChange={set('feedType')}>
               <option value="dry">Сухой</option>

@@ -22,20 +22,33 @@ export function DocumentsModule({ petId }: { petId: string }) {
   const [entries, setEntries] = useState<DocumentEntry[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(empty());
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => { loadModuleData<DocumentEntry>(petId, 'documents').then(setEntries); }, [petId]);
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(p => ({ ...p, [k]: e.target.value }));
 
+  const handleEdit = (entry: DocumentEntry) => {
+    const { id, ...rest } = entry;
+    setForm(rest);
+    setEditingId(id);
+    setShowForm(true);
+  };
+
+  const handleClose = () => { setShowForm(false); setForm(empty()); setEditingId(null); };
+
   const handleSave = async () => {
     if (!form.title.trim()) return;
-    const entry: DocumentEntry = { id: crypto.randomUUID(), ...form };
-    const updated = [entry, ...entries];
+    let updated: DocumentEntry[];
+    if (editingId) {
+      updated = entries.map(e => e.id === editingId ? { id: editingId, ...form } : e);
+    } else {
+      updated = [{ id: crypto.randomUUID(), ...form }, ...entries];
+    }
     setEntries(updated);
     await saveModuleData(petId, 'documents', updated);
-    setForm(empty());
-    setShowForm(false);
+    handleClose();
   };
 
   const handleDelete = async (id: string) => {
@@ -61,6 +74,7 @@ export function DocumentsModule({ petId }: { petId: string }) {
                 { label: 'Действует до', value: e.expiry },
                 { label: 'Заметки', value: e.notes },
               ]}
+              onEdit={() => handleEdit(e)}
               onDelete={() => handleDelete(e.id)}
             />
           ))}
@@ -68,7 +82,7 @@ export function DocumentsModule({ petId }: { petId: string }) {
       )}
 
       {showForm && (
-        <FormSheet title="Добавить документ" onClose={() => setShowForm(false)} onSave={handleSave}>
+        <FormSheet title={editingId ? 'Редактировать документ' : 'Добавить документ'} onClose={handleClose} onSave={handleSave}>
           <Field label="Тип документа">
             <Select value={form.type} onChange={set('type')}>
               <option value="passport">Ветеринарный паспорт</option>

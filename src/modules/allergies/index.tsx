@@ -14,20 +14,33 @@ export function AllergiesModule({ petId }: { petId: string }) {
   const [entries, setEntries] = useState<AllergyEntry[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(empty());
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => { loadModuleData<AllergyEntry>(petId, 'allergies').then(setEntries); }, [petId]);
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(p => ({ ...p, [k]: e.target.value }));
 
+  const handleEdit = (entry: AllergyEntry) => {
+    const { id, ...rest } = entry;
+    setForm(rest);
+    setEditingId(id);
+    setShowForm(true);
+  };
+
+  const handleClose = () => { setShowForm(false); setForm(empty()); setEditingId(null); };
+
   const handleSave = async () => {
     if (!form.allergen.trim()) return;
-    const entry: AllergyEntry = { id: crypto.randomUUID(), ...form };
-    const updated = [entry, ...entries];
+    let updated: AllergyEntry[];
+    if (editingId) {
+      updated = entries.map(e => e.id === editingId ? { id: editingId, ...form } : e);
+    } else {
+      updated = [{ id: crypto.randomUUID(), ...form }, ...entries];
+    }
     setEntries(updated);
     await saveModuleData(petId, 'allergies', updated);
-    setForm(empty());
-    setShowForm(false);
+    handleClose();
   };
 
   const handleDelete = async (id: string) => {
@@ -55,6 +68,7 @@ export function AllergiesModule({ petId }: { petId: string }) {
                 { label: 'Реакция', value: e.reaction },
                 { label: 'Подтверждено врачом', value: e.confirmedByVet ? 'Да' : 'Нет' },
               ]}
+              onEdit={() => handleEdit(e)}
               onDelete={() => handleDelete(e.id)}
             />
           ))}
@@ -62,7 +76,7 @@ export function AllergiesModule({ petId }: { petId: string }) {
       )}
 
       {showForm && (
-        <FormSheet title="Добавить аллергию" onClose={() => setShowForm(false)} onSave={handleSave}>
+        <FormSheet title={editingId ? 'Редактировать аллергию' : 'Добавить аллергию'} onClose={handleClose} onSave={handleSave}>
           <Field label="Аллерген *"><Input placeholder="Например: курица, пыльца берёзы" value={form.allergen} onChange={set('allergen')} /></Field>
           <Field label="Тип аллергена">
             <Select value={form.allergenType} onChange={set('allergenType')}>

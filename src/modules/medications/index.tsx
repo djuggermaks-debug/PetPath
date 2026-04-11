@@ -15,20 +15,33 @@ export function MedicationsModule({ petId }: { petId: string }) {
   const [entries, setEntries] = useState<MedicationEntry[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(empty());
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => { loadModuleData<MedicationEntry>(petId, 'medications').then(setEntries); }, [petId]);
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(p => ({ ...p, [k]: e.target.value }));
 
+  const handleEdit = (entry: MedicationEntry) => {
+    const { id, ...rest } = entry;
+    setForm(rest);
+    setEditingId(id);
+    setShowForm(true);
+  };
+
+  const handleClose = () => { setShowForm(false); setForm(empty()); setEditingId(null); };
+
   const handleSave = async () => {
     if (!form.name.trim()) return;
-    const entry: MedicationEntry = { id: crypto.randomUUID(), ...form };
-    const updated = [entry, ...entries];
+    let updated: MedicationEntry[];
+    if (editingId) {
+      updated = entries.map(e => e.id === editingId ? { id: editingId, ...form } : e);
+    } else {
+      updated = [{ id: crypto.randomUUID(), ...form }, ...entries];
+    }
     setEntries(updated);
     await saveModuleData(petId, 'medications', updated);
-    setForm(empty());
-    setShowForm(false);
+    handleClose();
   };
 
   const handleDelete = async (id: string) => {
@@ -57,6 +70,7 @@ export function MedicationsModule({ petId }: { petId: string }) {
                 { label: 'Напоминание', value: e.notifyTime },
               ]}
               notify={e.notify}
+              onEdit={() => handleEdit(e)}
               onDelete={() => handleDelete(e.id)}
             />
           ))}
@@ -64,7 +78,7 @@ export function MedicationsModule({ petId }: { petId: string }) {
       )}
 
       {showForm && (
-        <FormSheet title="Добавить лекарство" onClose={() => setShowForm(false)} onSave={handleSave}>
+        <FormSheet title={editingId ? 'Редактировать лекарство' : 'Добавить лекарство'} onClose={handleClose} onSave={handleSave}>
           <Field label="Название препарата *"><Input placeholder="Например: Энтерофурил" value={form.name} onChange={set('name')} /></Field>
           <Field label="Доза и единица">
             <div className="field-row" style={{ display: 'flex', gap: 8 }}>

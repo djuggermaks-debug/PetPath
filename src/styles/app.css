@@ -639,6 +639,15 @@
 }
 .record-notify-icon { color: #e67e22; }
 .record-photo-icon { color: #3498db; }
+.record-edit-btn {
+  background: none;
+  border: none;
+  color: var(--ink-faded);
+  cursor: pointer;
+  padding: 2px;
+  opacity: 0.5;
+}
+.record-edit-btn:active { opacity: 1; color: #3498db; }
 .record-delete-btn {
   background: none;
   border: none;
@@ -737,6 +746,17 @@
   gap: 8px;
   color: var(--ink-faded);
   font-size: 13px;
+}
+.media-edit-btn {
+  position: absolute;
+  top: 4px;
+  right: 32px;
+  background: rgba(44,24,16,0.6);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  padding: 3px;
+  cursor: pointer;
 }
 .media-delete-btn {
   position: absolute;

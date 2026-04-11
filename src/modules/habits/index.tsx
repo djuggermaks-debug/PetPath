@@ -23,20 +23,33 @@ export function HabitsModule({ petId }: { petId: string }) {
   const [entries, setEntries] = useState<HabitEntry[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(empty());
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => { loadModuleData<HabitEntry>(petId, 'habits').then(setEntries); }, [petId]);
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(p => ({ ...p, [k]: e.target.value }));
 
+  const handleEdit = (entry: HabitEntry) => {
+    const { id, ...rest } = entry;
+    setForm(rest);
+    setEditingId(id);
+    setShowForm(true);
+  };
+
+  const handleClose = () => { setShowForm(false); setForm(empty()); setEditingId(null); };
+
   const handleSave = async () => {
     if (!form.description.trim()) return;
-    const entry: HabitEntry = { id: crypto.randomUUID(), ...form };
-    const updated = [entry, ...entries];
+    let updated: HabitEntry[];
+    if (editingId) {
+      updated = entries.map(e => e.id === editingId ? { id: editingId, ...form } : e);
+    } else {
+      updated = [{ id: crypto.randomUUID(), ...form }, ...entries];
+    }
     setEntries(updated);
     await saveModuleData(petId, 'habits', updated);
-    setForm(empty());
-    setShowForm(false);
+    handleClose();
   };
 
   const handleDelete = async (id: string) => {
@@ -60,6 +73,7 @@ export function HabitsModule({ petId }: { petId: string }) {
               fields={[
                 { label: 'Активность', value: e.activityLevel === 'low' ? 'Низкая' : e.activityLevel === 'medium' ? 'Средняя' : 'Высокая' },
               ]}
+              onEdit={() => handleEdit(e)}
               onDelete={() => handleDelete(e.id)}
             />
           ))}
@@ -67,7 +81,7 @@ export function HabitsModule({ petId }: { petId: string }) {
       )}
 
       {showForm && (
-        <FormSheet title="Добавить привычку" onClose={() => setShowForm(false)} onSave={handleSave}>
+        <FormSheet title={editingId ? 'Редактировать запись' : 'Добавить привычку'} onClose={handleClose} onSave={handleSave}>
           <Field label="Категория">
             <Select value={form.category} onChange={set('category')}>
               <option value="activity">Активность</option>

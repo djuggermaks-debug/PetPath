@@ -17,20 +17,33 @@ export function HealthModule({ petId }: { petId: string }) {
   const [entries, setEntries] = useState<HealthEntry[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(empty());
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => { loadModuleData<HealthEntry>(petId, 'health').then(setEntries); }, [petId]);
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(p => ({ ...p, [k]: e.target.value }));
 
+  const handleEdit = (entry: HealthEntry) => {
+    const { id, ...rest } = entry;
+    setForm(rest);
+    setEditingId(id);
+    setShowForm(true);
+  };
+
+  const handleClose = () => { setShowForm(false); setForm(empty()); setEditingId(null); };
+
   const handleSave = async () => {
     if (!form.description.trim()) return;
-    const entry: HealthEntry = { id: crypto.randomUUID(), ...form };
-    const updated = [entry, ...entries];
+    let updated: HealthEntry[];
+    if (editingId) {
+      updated = entries.map(e => e.id === editingId ? { id: editingId, ...form } : e);
+    } else {
+      updated = [{ id: crypto.randomUUID(), ...form }, ...entries];
+    }
     setEntries(updated);
     await saveModuleData(petId, 'health', updated);
-    setForm(empty());
-    setShowForm(false);
+    handleClose();
   };
 
   const handleDelete = async (id: string) => {
@@ -65,6 +78,7 @@ export function HealthModule({ petId }: { petId: string }) {
                 { label: 'Следующий визит', value: e.nextVisitDate },
               ]}
               notify={e.nextVisitNotify}
+              onEdit={() => handleEdit(e)}
               onDelete={() => handleDelete(e.id)}
             />
           ))}
@@ -72,7 +86,7 @@ export function HealthModule({ petId }: { petId: string }) {
       )}
 
       {showForm && (
-        <FormSheet title="Запись о здоровье" onClose={() => setShowForm(false)} onSave={handleSave}>
+        <FormSheet title={editingId ? 'Редактировать запись' : 'Запись о здоровье'} onClose={handleClose} onSave={handleSave}>
           <Field label="Тип записи">
             <Select value={form.type} onChange={set('type')}>
               <option value="symptom">Симптом</option>

@@ -14,20 +14,33 @@ export function VaccinesModule({ petId }: { petId: string }) {
   const [entries, setEntries] = useState<VaccineEntry[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(empty());
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => { loadModuleData<VaccineEntry>(petId, 'vaccines').then(setEntries); }, [petId]);
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(p => ({ ...p, [k]: e.target.value }));
 
+  const handleEdit = (entry: VaccineEntry) => {
+    const { id, ...rest } = entry;
+    setForm(rest);
+    setEditingId(id);
+    setShowForm(true);
+  };
+
+  const handleClose = () => { setShowForm(false); setForm(empty()); setEditingId(null); };
+
   const handleSave = async () => {
     if (!form.name.trim()) return;
-    const entry: VaccineEntry = { id: crypto.randomUUID(), ...form };
-    const updated = [entry, ...entries];
+    let updated: VaccineEntry[];
+    if (editingId) {
+      updated = entries.map(e => e.id === editingId ? { id: editingId, ...form } : e);
+    } else {
+      updated = [{ id: crypto.randomUUID(), ...form }, ...entries];
+    }
     setEntries(updated);
     await saveModuleData(petId, 'vaccines', updated);
-    setForm(empty());
-    setShowForm(false);
+    handleClose();
   };
 
   const handleDelete = async (id: string) => {
@@ -53,14 +66,16 @@ export function VaccinesModule({ petId }: { petId: string }) {
                 { label: 'Клиника', value: e.clinic },
                 { label: 'Следующая', value: e.nextDate },
               ]}
-              notify={e.notify} onDelete={() => handleDelete(e.id)}
+              notify={e.notify}
+              onEdit={() => handleEdit(e)}
+              onDelete={() => handleDelete(e.id)}
             />
           ))}
         </div>
       )}
 
       {showForm && (
-        <FormSheet title="Добавить прививку" onClose={() => setShowForm(false)} onSave={handleSave}>
+        <FormSheet title={editingId ? 'Редактировать прививку' : 'Добавить прививку'} onClose={handleClose} onSave={handleSave}>
           <Field label="Название прививки *"><Input placeholder="Например: Нобивак" value={form.name} onChange={set('name')} /></Field>
           <Field label="Дата вакцинации"><Input type="date" value={form.date} onChange={set('date')} /></Field>
           <Field label="Препарат"><Input placeholder="Коммерческое название" value={form.drug} onChange={set('drug')} /></Field>

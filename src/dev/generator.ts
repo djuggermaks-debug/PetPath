@@ -1,4 +1,4 @@
-import { GEMINI_URL } from '../ai/config';
+import { GEMINI_PROXY_URL } from '../ai/config';
 import { devLogger } from './logger';
 import type { Pet } from '../types';
 
@@ -45,14 +45,16 @@ export async function generateTestPhrase(pet: Pet): Promise<string> {
 Пиши разговорно, как в мессенджере. Только само сообщение, без кавычек и пояснений.`;
 
   try {
-    const response = await fetch(GEMINI_URL, {
+    const response = await fetch(GEMINI_PROXY_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{
-          parts: [{ text: `Питомец: ${pet.name} (${pet.species}${pet.breed ? ', ' + pet.breed : ''})\n\n${prompt}` }]
-        }],
-        generationConfig: { temperature: 0.95 },
+        body: {
+          contents: [{
+            parts: [{ text: `Питомец: ${pet.name} (${pet.species}${pet.breed ? ', ' + pet.breed : ''})\n\n${prompt}` }]
+          }],
+          generationConfig: { temperature: 0.95 },
+        },
       }),
     });
 

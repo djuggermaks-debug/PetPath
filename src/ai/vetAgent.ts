@@ -1,4 +1,4 @@
-import { GEMINI_URL } from './config';
+import { GEMINI_PROXY_URL } from './config';
 import type { Pet } from '../types';
 
 export interface VetAdvice {
@@ -76,13 +76,15 @@ export async function analyzeWithVetAgent(pet: Pet, allData: Record<string, unkn
     parts.push({ inline_data: { mime_type: photo.mimeType, data: photo.base64 } });
   }
 
-  const response = await fetch(GEMINI_URL, {
+  const response = await fetch(GEMINI_PROXY_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-      contents: [{ parts }],
-      generationConfig: { temperature: 0.3, responseMimeType: 'application/json' },
+      body: {
+        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [{ parts }],
+        generationConfig: { temperature: 0.3, responseMimeType: 'application/json' },
+      },
     }),
   });
 

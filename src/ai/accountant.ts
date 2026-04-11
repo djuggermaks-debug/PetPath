@@ -3,7 +3,7 @@ import type { Pet } from '../types';
 import { devLogger } from '../dev/logger';
 
 export interface ParsedAtom {
-  module: 'health' | 'medications' | 'vaccines' | 'allergies' | 'nutrition' | 'habits' | 'documents' | 'profile';
+  module: 'health' | 'medications' | 'vaccines' | 'allergies' | 'nutrition' | 'habits' | 'documents' | 'items' | 'profile';
   confidence: number;
   data: Record<string, unknown>;
 }
@@ -35,6 +35,9 @@ habits (поведение, активность, команды, игры, со
 documents (паспорт, чип, страховка, родословная):
 { "module": "documents", "confidence": 0.9, "data": { "type": "passport"|"chip"|"insurance"|"pedigree"|"other", "title": "название", "number": "номер", "date": "YYYY-MM-DD", "expiry": "YYYY-MM-DD", "notes": "заметки" } }
 
+items (вещи питомца: игрушки, лежанки, миски, поводки, одежда, клетки, переноски, любые предметы — в т.ч. с чеков):
+{ "module": "items", "confidence": 0.9, "data": { "name": "название", "category": "toy"|"bed"|"feeder"|"leash"|"clothing"|"cage"|"other", "condition": "new"|"used"|"worn", "reaction": "loves"|"likes"|"ignores"|"afraid", "purchaseDate": "YYYY-MM-DD", "notes": "заметки" } }
+
 profile (обновление данных профиля питомца: порода, вес, дата рождения, окрас, пол):
 { "module": "profile", "confidence": 0.9, "data": { "breed": "порода", "weight": 4.5, "birthDate": "YYYY-MM-DD", "color": "окрас", "gender": "male"|"female" } }
 Включай только те поля profile, которые явно упомянуты.
@@ -61,6 +64,12 @@ profile (обновление данных профиля питомца: пор
 
 Сообщение: "оформили ветеринарный паспорт серия AB 123456"
 Ответ: [{"module":"documents","confidence":0.95,"data":{"type":"passport","title":"Ветеринарный паспорт","number":"AB 123456","date":"${TODAY}"}}]
+
+Сообщение: "купили мышку на верёвке, барсик обожает"
+Ответ: [{"module":"items","confidence":0.95,"data":{"name":"Мышка на верёвке","category":"toy","condition":"new","reaction":"loves","purchaseDate":"${TODAY}"}}]
+
+Сообщение: "любимая чесалка"
+Ответ: [{"module":"items","confidence":0.9,"data":{"name":"Чесалка","category":"toy","reaction":"loves","purchaseDate":"${TODAY}"}}]
 
 Сообщение: "Порода клепа: дворняга"
 Ответ: [{"module":"profile","confidence":0.95,"data":{"breed":"Дворняга"}}]

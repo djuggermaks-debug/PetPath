@@ -6,6 +6,7 @@ import { NutritionModule } from './nutrition';
 import { HabitsModule } from './habits';
 import { DocumentsModule } from './documents';
 import { MediaModule } from './media';
+import { ItemsModule } from './items';
 
 interface ModuleEntry {
   id: string;
@@ -26,4 +27,5 @@ export const MODULE_REGISTRY: ModuleEntry[] = [
   { id: 'habits',      label: 'Привычки',   labelShort: 'Привыч.',  icon: '🐾', color: '#3498db', isPremium: true,  component: HabitsModule },
   { id: 'documents',   label: 'Документы',  labelShort: 'Докум.',   icon: '📄', color: '#1abc9c', isPremium: true,  component: DocumentsModule },
   { id: 'media',       label: 'Медиабанк',  labelShort: 'Медиа',    icon: '📸', color: '#e91e63', isPremium: true,  component: MediaModule },
+  { id: 'items',       label: 'Вещи',       labelShort: 'Вещи',     icon: '🧸', color: '#e67e22', isPremium: true,  component: ItemsModule },
 ];

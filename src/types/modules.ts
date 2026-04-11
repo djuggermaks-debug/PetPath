@@ -92,6 +92,18 @@ export interface DocumentEntry {
   notes?: string;
 }
 
+// ── Items ─────────────────────────────────────────────────────
+export interface ItemEntry {
+  id: string;
+  name: string;
+  category: 'toy' | 'bed' | 'feeder' | 'leash' | 'clothing' | 'cage' | 'other';
+  condition?: 'new' | 'used' | 'worn';
+  reaction?: 'loves' | 'likes' | 'ignores' | 'afraid';
+  purchaseDate?: string;
+  notes?: string;
+  _photo?: string;
+}
+
 // ── Calendar ──────────────────────────────────────────────────
 export interface CalendarEntry {
   id: string;

@@ -3,7 +3,8 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 const BOT_TOKEN = Deno.env.get('BOT_TOKEN')!;
 const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'content-type',
+  'Access-Control-Allow-Headers': 'content-type, apikey, authorization',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 serve(async (req) => {

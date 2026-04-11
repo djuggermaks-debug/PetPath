@@ -4,6 +4,7 @@ import { OnboardingForm } from './components/OnboardingForm';
 import { PetFolder } from './components/PetFolder';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { loadAllPets, savePet } from './storage';
+import { useUserStatus } from './hooks/useUserStatus';
 
 import './styles/global.css';
 import './styles/app.css';
@@ -15,6 +16,8 @@ function App() {
   const [showWelcome, setShowWelcome] = useState(false);
   const [isFirstLaunch, setIsFirstLaunch] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const userStatus = useUserStatus();
 
   useEffect(() => {
     const welcomed = localStorage.getItem('_welcomed');
@@ -60,7 +63,7 @@ function App() {
     setActivePet(updated);
   };
 
-  if (loading) {
+  if (loading || userStatus.status === 'loading') {
     return (
       <div className="loading-screen">
         <span className="font-typewriter">Загрузка дела...</span>
@@ -94,6 +97,7 @@ function App() {
           onDeletePet={handleDeletePet}
           onUpdatePet={handleUpdatePet}
           onShowHelp={() => { setIsFirstLaunch(false); setShowWelcome(true); }}
+          userStatus={userStatus}
         />
       )}
 

@@ -8,12 +8,14 @@ import { VetCard } from './VetCard';
 import { VetAnalysis } from './VetAnalysis';
 import { QuestionPrompt } from './QuestionPrompt';
 import { OnboardingForm } from './OnboardingForm';
+import { Paywall } from './Paywall';
 import { DevPanel } from '../dev/DevPanel';
 import { parseUserText, parseImageData } from '../ai/accountant';
 import { analyzeWithVetAgent } from '../ai/vetAgent';
 import { getPendingQuestions } from '../ai/questions';
 import { loadModuleData, saveModuleData, deletePet, updatePet } from '../storage';
 import { devLogger } from '../dev/logger';
+import type { UserInfo } from '../hooks/useUserStatus';
 
 const DEV_MODE = new URLSearchParams(window.location.search).has('dev');
 
@@ -59,9 +61,10 @@ interface PetFolderProps {
   onDeletePet: (petId: string) => void;
   onUpdatePet: (pet: Pet) => void;
   onShowHelp: () => void;
+  userStatus: UserInfo;
 }
 
-export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, onUpdatePet, onShowHelp }: PetFolderProps) {
+export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, onUpdatePet, onShowHelp, userStatus }: PetFolderProps) {
   const [activeModule, setActiveModule] = useState<string | null>(null);
   const [parsing, setParsing] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -72,6 +75,7 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, on
   const [inputPrefill, setInputPrefill] = useState('');
   const [showEditForm, setShowEditForm] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const loadQuestions = async () => {
     const allData: Record<string, unknown[]> = {};
@@ -196,20 +200,33 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, on
       <div className="folder-body">
         {/* Side tabs */}
         <div className="side-tabs">
-          {MODULE_REGISTRY.map(mod => (
-            <button key={mod.id}
-              className={`side-tab ${activeModule === mod.id ? 'side-tab--active' : ''} ${mod.isPremium ? 'side-tab--premium' : ''}`}
-              style={{ '--tab-color': mod.color } as React.CSSProperties}
-              onClick={() => setActiveModule(prev => prev === mod.id ? null : mod.id)}
-              title={mod.label}>
-              <span className="side-tab-icon">{mod.icon}</span>
-              <span className="side-tab-label">{mod.labelShort}</span>
-            </button>
-          ))}
+          {MODULE_REGISTRY.map(mod => {
+            const locked = mod.isPremium && !userStatus.isPremium;
+            return (
+              <button key={mod.id}
+                className={`side-tab ${activeModule === mod.id ? 'side-tab--active' : ''} ${mod.isPremium ? 'side-tab--premium' : ''} ${locked ? 'side-tab--locked' : ''}`}
+                style={{ '--tab-color': mod.color } as React.CSSProperties}
+                onClick={() => locked ? setShowPaywall(true) : setActiveModule(prev => prev === mod.id ? null : mod.id)}
+                title={mod.label}>
+                <span className="side-tab-icon">{locked ? '🔒' : mod.icon}</span>
+                <span className="side-tab-label">{mod.labelShort}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Main content */}
         <div className="folder-content scrollable">
+          {userStatus.status === 'trial' && (
+            <div className="trial-banner" onClick={() => setShowPaywall(true)}>
+              ⏳ Пробный период: осталось {userStatus.trialDaysLeft} дн. · Купить Premium →
+            </div>
+          )}
+          {userStatus.status === 'trial_expired' && (
+            <div className="trial-banner trial-banner--expired" onClick={() => setShowPaywall(true)}>
+              🔒 Пробный период закончился · Купить Premium →
+            </div>
+          )}
           <div className="case-header">
             <div className="case-number font-typewriter">{pet.caseNumber}</div>
             <div className="case-header-actions">
@@ -274,6 +291,13 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, on
 
       {vetCardData && (
         <VetCard pet={pet} calcAge={calcAge} allData={vetCardData} onClose={() => setVetCardData(null)} />
+      )}
+
+      {showPaywall && (
+        <Paywall
+          onClose={() => setShowPaywall(false)}
+          onPurchased={() => { setShowPaywall(false); window.location.reload(); }}
+        />
       )}
 
       {showEditForm && (

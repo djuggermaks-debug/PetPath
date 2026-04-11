@@ -1,4 +1,12 @@
-export const GEMINI_MODEL = 'gemini-2.5-flash';
+const SB_URL = 'https://qkraaygwvnwzotyqdnlx.supabase.co';
+const SB_ANON_KEY = 'sb_publishable_gHQhjhxovzymM7ELtSyxrg_Lq3XQduP';
 
-const SB_URL = import.meta.env.VITE_SB_URL ?? '';
 export const GEMINI_PROXY_URL = `${SB_URL}/functions/v1/gemini-proxy`;
+
+export function geminiRequest(body: unknown): Promise<Response> {
+  return fetch(GEMINI_PROXY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SB_ANON_KEY },
+    body: JSON.stringify({ body }),
+  });
+}

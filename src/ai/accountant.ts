@@ -1,4 +1,4 @@
-import { GEMINI_PROXY_URL } from './config';
+import { geminiRequest } from './config';
 import type { Pet } from '../types';
 import { devLogger } from '../dev/logger';
 
@@ -134,16 +134,10 @@ export async function parseUserText(text: string, pet: Pet): Promise<ParsedAtom[
 
   devLogger.log('parse', 'Отправлен запрос к Gemini', { text, pet: pet.name });
 
-  const response = await fetch(GEMINI_PROXY_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      body: {
-        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
-      },
-    }),
+  const response = await geminiRequest({
+    system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
   });
 
   const json = await response.json();
@@ -165,21 +159,15 @@ export async function parseImageData(
 
   devLogger.log('parse', 'Отправлен запрос к Gemini (фото)', { mimeType, caption, pet: pet.name });
 
-  const response = await fetch(GEMINI_PROXY_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      body: {
-        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents: [{
-          parts: [
-            { inline_data: { mime_type: mimeType, data: base64 } },
-            { text: prompt },
-          ],
-        }],
-        generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
-      },
-    }),
+  const response = await geminiRequest({
+    system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    contents: [{
+      parts: [
+        { inline_data: { mime_type: mimeType, data: base64 } },
+        { text: prompt },
+      ],
+    }],
+    generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
   });
 
   const json = await response.json();

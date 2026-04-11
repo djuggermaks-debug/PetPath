@@ -3,7 +3,7 @@ import { Mic, Send, MicOff, Loader, Zap, Camera, X } from 'lucide-react';
 import { devLogger } from '../dev/logger';
 import { generateTestPhrase } from '../dev/generator';
 import type { Pet } from '../types';
-import { GEMINI_PROXY_URL } from '../ai/config';
+import { geminiRequest } from '../ai/config';
 
 interface InputBarProps {
   petId: string;
@@ -17,19 +17,13 @@ interface InputBarProps {
 }
 
 async function transcribeAudio(base64: string, mimeType: string): Promise<string> {
-  const res = await fetch(GEMINI_PROXY_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      body: {
-        contents: [{
-          parts: [
-            { inlineData: { mimeType, data: base64 } },
-            { text: 'Транскрибируй этот аудиофрагмент на русском языке. Верни только текст без пояснений.' },
-          ],
-        }],
-      },
-    }),
+  const res = await geminiRequest({
+    contents: [{
+      parts: [
+        { inlineData: { mimeType, data: base64 } },
+        { text: 'Транскрибируй этот аудиофрагмент на русском языке. Верни только текст без пояснений.' },
+      ],
+    }],
   });
   const json = await res.json();
   return json?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';

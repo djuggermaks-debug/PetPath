@@ -43,6 +43,19 @@
 .onboarding-header {
   text-align: center;
   margin-bottom: 20px;
+  position: relative;
+}
+.onboarding-cancel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--ink-faded);
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
 }
 .onboarding-header h2 {
   font-size: 22px;

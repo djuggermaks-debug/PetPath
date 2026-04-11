@@ -102,7 +102,7 @@ function App() {
       )}
 
       {showOnboarding && (
-        <OnboardingForm onComplete={handleAddPet} />
+        <OnboardingForm onComplete={handleAddPet} onCancel={pets.length > 0 ? () => setShowOnboarding(false) : undefined} />
       )}
     </>
   );

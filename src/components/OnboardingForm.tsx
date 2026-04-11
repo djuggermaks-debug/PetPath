@@ -6,9 +6,10 @@ import { detectPetBreed } from '../ai/breedDetector';
 interface OnboardingFormProps {
   onComplete: (pet: Pet) => void;
   initialPet?: Pet;
+  onCancel?: () => void;
 }
 
-export function OnboardingForm({ onComplete, initialPet }: OnboardingFormProps) {
+export function OnboardingForm({ onComplete, initialPet, onCancel }: OnboardingFormProps) {
   const isEditing = !!initialPet;
 
   const [photo, setPhoto] = useState<string | null>(initialPet?.photo ?? null);
@@ -68,6 +69,9 @@ export function OnboardingForm({ onComplete, initialPet }: OnboardingFormProps) 
         <div className="onboarding-header font-typewriter">
           <span className="stamp">{isEditing ? 'РЕДАКТИРОВАТЬ' : 'НОВОЕ ДЕЛО'}</span>
           <h2>{isEditing ? 'Изменить профиль' : 'Добавить питомца'}</h2>
+          {onCancel && (
+            <button className="onboarding-cancel" onClick={onCancel}>✕</button>
+          )}
         </div>
 
         {/* Photo upload */}

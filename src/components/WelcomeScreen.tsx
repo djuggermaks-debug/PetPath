@@ -88,8 +88,8 @@ export function WelcomeScreen({ onStart, onClose, isFirstLaunch }: WelcomeScreen
 
         <div className="welcome-pricing">
           <div className="welcome-price-block">
-            <span className="welcome-price-old">1300 ⭐</span>
-            <span className="welcome-price-new">650 ⭐</span>
+            <span className="welcome-price-old">600 ⭐</span>
+            <span className="welcome-price-new">300 ⭐</span>
             <span className="welcome-price-badge font-typewriter">-50% только сейчас</span>
           </div>
           <p className="welcome-price-hint">
@@ -97,7 +97,7 @@ export function WelcomeScreen({ onStart, onClose, isFirstLaunch }: WelcomeScreen
           </p>
 
           <button className="welcome-buy-btn font-typewriter" onClick={handleBuy} disabled={buying}>
-            {buying ? <><Loader size={14} className="spin" /> Загрузка...</> : '⭐ Купить Premium — 650 Stars'}
+            {buying ? <><Loader size={14} className="spin" /> Загрузка...</> : '⭐ Купить Premium — 300 Stars'}
           </button>
           {buyError && <p className="welcome-buy-error">{buyError}</p>}
         </div>

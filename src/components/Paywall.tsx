@@ -56,8 +56,8 @@ export function Paywall({ onClose, onPurchased }: PaywallProps) {
         </div>
 
         <div className="paywall-price-block">
-          <span className="paywall-price-old">1300 ⭐</span>
-          <span className="paywall-price-new">650 ⭐</span>
+          <span className="paywall-price-old">600 ⭐</span>
+          <span className="paywall-price-new">300 ⭐</span>
           <span className="paywall-price-badge font-typewriter">-50%</span>
         </div>
         <p className="paywall-period">/ 30 дней</p>

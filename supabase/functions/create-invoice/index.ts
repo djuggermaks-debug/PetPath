@@ -20,7 +20,7 @@ serve(async (req) => {
       description: 'Доступ ко всем функциям на 30 дней',
       payload: JSON.stringify({ user_id, type: 'premium_30d' }),
       currency: 'XTR',
-      prices: [{ label: 'Premium 30 дней', amount: 650 }],
+      prices: [{ label: 'Premium 30 дней', amount: 300 }],
     }),
   });
 

@@ -21,6 +21,7 @@ export function MediaModule({ petId }: { petId: string }) {
   const [form, setForm] = useState(empty());
   const [preview, setPreview] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { loadModuleData<MediaEntry>(petId, 'media').then(setEntries); }, [petId]);
@@ -51,16 +52,21 @@ export function MediaModule({ petId }: { petId: string }) {
   const handleClose = () => { setShowForm(false); setForm(empty()); setPreview(null); setEditingId(null); };
 
   const handleSave = async () => {
-    if (!form.url) return;
-    let updated: MediaEntry[];
-    if (editingId) {
-      updated = entries.map(e => e.id === editingId ? { id: editingId, ...form } : e);
-    } else {
-      updated = [{ id: crypto.randomUUID(), ...form }, ...entries];
+    if (!form.url || saving) return;
+    setSaving(true);
+    try {
+      let updated: MediaEntry[];
+      if (editingId) {
+        updated = entries.map(e => e.id === editingId ? { id: editingId, ...form } : e);
+      } else {
+        updated = [{ id: crypto.randomUUID(), ...form }, ...entries];
+      }
+      setEntries(updated);
+      await saveModuleData(petId, 'media', updated);
+      handleClose();
+    } finally {
+      setSaving(false);
     }
-    setEntries(updated);
-    await saveModuleData(petId, 'media', updated);
-    handleClose();
   };
 
   const handleDelete = async (id: string) => {
@@ -100,7 +106,7 @@ export function MediaModule({ petId }: { petId: string }) {
       )}
 
       {showForm && (
-        <FormSheet title={editingId ? 'Редактировать медиа' : 'Добавить медиа'} onClose={handleClose} onSave={handleSave}>
+        <FormSheet title={editingId ? 'Редактировать медиа' : 'Добавить медиа'} onClose={handleClose} onSave={handleSave} saving={saving}>
           <div className="media-upload-area" onClick={() => fileRef.current?.click()}>
             {preview
               ? <img src={preview} alt="preview" className="media-upload-preview" />

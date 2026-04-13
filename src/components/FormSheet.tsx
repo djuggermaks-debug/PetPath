@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { PawLoader } from './PawLoader';
 
 interface FormSheetProps {
   title: string;
@@ -7,9 +8,10 @@ interface FormSheetProps {
   onSave: () => void;
   children: React.ReactNode;
   saveLabel?: string;
+  saving?: boolean;
 }
 
-export function FormSheet({ title, onClose, onSave, children, saveLabel = 'Сохранить' }: FormSheetProps) {
+export function FormSheet({ title, onClose, onSave, children, saveLabel = 'Сохранить', saving = false }: FormSheetProps) {
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
@@ -24,8 +26,9 @@ export function FormSheet({ title, onClose, onSave, children, saveLabel = 'Со�
         </div>
         <div className="sheet-body scrollable">{children}</div>
         <div className="sheet-footer">
-          <button className="sheet-save-btn font-typewriter" onClick={onSave}>{saveLabel}</button>
+          <button className="sheet-save-btn font-typewriter" onClick={onSave} disabled={saving}>{saveLabel}</button>
         </div>
+        {saving && <PawLoader overlay text="Сохранение..." />}
       </div>
     </div>
   );

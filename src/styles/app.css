@@ -10,6 +10,55 @@
   letter-spacing: 1px;
 }
 
+/* ─── PAW LOADER ─────────────────────────────────────────── */
+@keyframes paw-step {
+  0%   { opacity: 0; transform: scale(0.4) translateY(4px); }
+  25%  { opacity: 1; transform: scale(1)   translateY(0);   }
+  65%  { opacity: 1; transform: scale(1)   translateY(0);   }
+  100% { opacity: 0; transform: scale(1)   translateY(0);   }
+}
+
+.paw-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.paw-loader-track {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.paw-loader-paw {
+  font-size: 22px;
+  opacity: 0;
+  animation: paw-step 1.4s ease-in-out infinite;
+}
+
+.paw-loader-paw--hi { transform: translateY(-5px); }
+.paw-loader-paw--lo { transform: translateY(5px);  }
+
+.paw-loader-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-faded);
+  letter-spacing: 1px;
+}
+
+.paw-loader-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 240, 232, 0.82);
+  backdrop-filter: blur(2px);
+  border-radius: inherit;
+  z-index: 10;
+}
+
 /* ─── ONBOARDING ─────────────────────────────────────────── */
 .onboarding-overlay {
   position: fixed;
@@ -23,6 +72,7 @@
 }
 
 .onboarding-card {
+  position: relative;
   background: var(--paper-bg);
   width: 100%;
   max-height: 92vh;
@@ -817,6 +867,7 @@
   align-items: flex-end;
 }
 .sheet-card {
+  position: relative;
   background: var(--paper-bg);
   width: 100%;
   max-height: 88vh;

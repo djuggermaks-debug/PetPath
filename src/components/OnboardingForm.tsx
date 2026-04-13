@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
 import type { Pet } from '../types';
-import { Camera, ChevronDown, Loader } from 'lucide-react';
+import { Camera, ChevronDown } from 'lucide-react';
 import { detectPetBreed } from '../ai/breedDetector';
+import { PawLoader } from './PawLoader';
 
 interface OnboardingFormProps {
   onComplete: (pet: Pet) => void;
@@ -14,6 +15,7 @@ export function OnboardingForm({ onComplete, initialPet, onCancel }: OnboardingF
 
   const [photo, setPhoto] = useState<string | null>(initialPet?.photo ?? null);
   const [detectingBreed, setDetectingBreed] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: initialPet?.name ?? '',
     species: (initialPet?.species ?? 'cat') as Pet['species'],
@@ -47,7 +49,8 @@ export function OnboardingForm({ onComplete, initialPet, onCancel }: OnboardingF
   };
 
   const handleSubmit = () => {
-    if (!form.name.trim()) return;
+    if (!form.name.trim() || saving) return;
+    setSaving(true);
     const pet: Pet = {
       id: initialPet?.id ?? crypto.randomUUID(),
       ...form,
@@ -121,10 +124,7 @@ export function OnboardingForm({ onComplete, initialPet, onCancel }: OnboardingF
           </div>
 
           <div className="field-group">
-            <label className="field-label font-typewriter">
-              Порода
-              {detectingBreed && <Loader size={12} className="spin" style={{ marginLeft: 6 }} />}
-            </label>
+            <label className="field-label font-typewriter">Порода</label>
             <input
               className="field-input"
               placeholder={detectingBreed ? 'Определяю...' : 'Мейн-кун'}
@@ -162,10 +162,13 @@ export function OnboardingForm({ onComplete, initialPet, onCancel }: OnboardingF
         <button
           className="submit-btn font-typewriter"
           onClick={handleSubmit}
-          disabled={!form.name.trim()}
+          disabled={!form.name.trim() || saving}
         >
-          {isEditing ? 'Сохранить изменения' : 'Завести дело'}
+          {saving ? 'Сохранение...' : isEditing ? 'Сохранить изменения' : 'Завести дело'}
         </button>
+      {(detectingBreed || saving) && (
+        <PawLoader overlay text={detectingBreed ? 'Определяю породу...' : 'Сохранение...'} />
+      )}
       </div>
     </div>
   );

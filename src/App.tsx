@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Pet } from './types';
 import { OnboardingForm } from './components/OnboardingForm';
+import { PawLoader } from './components/PawLoader';
 import { PetFolder } from './components/PetFolder';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { loadAllPets, savePet } from './storage';
@@ -66,7 +67,7 @@ function App() {
   if (loading || userStatus.status === 'loading') {
     return (
       <div className="loading-screen">
-        <span className="font-typewriter">Загрузка дела...</span>
+        <PawLoader text="Загрузка дела..." />
       </div>
     );
   }

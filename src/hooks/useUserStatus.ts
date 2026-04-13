@@ -34,9 +34,14 @@ export function useUserStatus(): UserInfo {
 
       if (!data) {
         // Первый вход — создаём запись с триалом
+        const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
         const { data: created } = await supabase
           .from('users')
-          .insert({ telegram_user_id: userId, trial_started_at: new Date().toISOString() })
+          .insert({
+            telegram_user_id: userId,
+            trial_started_at: new Date().toISOString(),
+            username: tgUser?.username ?? null,
+          })
           .select()
           .single();
         data = created;

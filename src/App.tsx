@@ -31,6 +31,8 @@ function App() {
       setPets(loaded);
       if (loaded.length > 0) setActivePet(loaded[0]);
       setLoading(false);
+    }).catch(() => {
+      setLoading(false);
     });
   }, []);
 

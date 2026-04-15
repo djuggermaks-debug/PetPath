@@ -83,24 +83,26 @@ export function WelcomeScreen({ onStart, onClose, isFirstLaunch }: WelcomeScreen
 
         <div className="welcome-trial">
           <span className="welcome-trial-badge font-typewriter">7 ДНЕЙ БЕСПЛАТНО</span>
-          <p className="welcome-trial-text">После пробного периода — Premium подписка</p>
+          <p className="welcome-trial-text">Все функции без ограничений — попробуй прямо сейчас</p>
         </div>
 
-        <div className="welcome-pricing">
-          <div className="welcome-price-block">
-            <span className="welcome-price-old">600 ⭐</span>
-            <span className="welcome-price-new">300 ⭐</span>
-            <span className="welcome-price-badge font-typewriter">-50% только сейчас</span>
+        {!isFirstLaunch && (
+          <div className="welcome-pricing">
+            <div className="welcome-price-block">
+              <span className="welcome-price-old">600 ⭐</span>
+              <span className="welcome-price-new">300 ⭐</span>
+              <span className="welcome-price-badge font-typewriter">-50% только сейчас</span>
+            </div>
+            <p className="welcome-price-hint">
+              ⭐ Звёзды покупаются в Telegram — Settings → Telegram Stars
+            </p>
+
+            <button className="welcome-buy-btn font-typewriter" onClick={handleBuy} disabled={buying}>
+              {buying ? <><Loader size={14} className="spin" /> Загрузка...</> : '⭐ Купить Premium — 300 Stars'}
+            </button>
+            {buyError && <p className="welcome-buy-error">{buyError}</p>}
           </div>
-          <p className="welcome-price-hint">
-            ⭐ Звёзды покупаются в Telegram — Settings → Telegram Stars
-          </p>
-
-          <button className="welcome-buy-btn font-typewriter" onClick={handleBuy} disabled={buying}>
-            {buying ? <><Loader size={14} className="spin" /> Загрузка...</> : '⭐ Купить Premium — 300 Stars'}
-          </button>
-          {buyError && <p className="welcome-buy-error">{buyError}</p>}
-        </div>
+        )}
 
         <button className="welcome-start-btn font-typewriter" onClick={onStart}>
           {isFirstLaunch ? 'Начать бесплатно →' : 'Закрыть'}

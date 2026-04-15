@@ -223,7 +223,7 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, on
 
         {/* Main content */}
         <div className="folder-content scrollable">
-          {userStatus.status === 'trial' && (
+          {userStatus.status === 'trial' && userStatus.trialDaysLeft <= 3 && (
             <div className="trial-banner" onClick={() => setShowPaywall(true)}>
               ⏳ Пробный период: осталось {userStatus.trialDaysLeft} дн. · Купить Premium →
             </div>

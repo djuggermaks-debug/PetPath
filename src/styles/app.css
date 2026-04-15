@@ -59,6 +59,43 @@
   z-index: 10;
 }
 
+/* ─── QUICK ONBOARDING ───────────────────────────────────── */
+.quick-onboarding-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+.quick-onboarding-logo img {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+}
+.quick-onboarding-hint {
+  text-align: center;
+  font-size: 14px;
+  color: var(--ink-faded);
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+.quick-onboarding-examples {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(0,0,0,0.04);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--ink-faded);
+  margin-bottom: 4px;
+}
+.quick-onboarding-examples span {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.quick-onboarding-examples em {
+  font-style: italic;
+}
+
 /* ─── ONBOARDING ─────────────────────────────────────────── */
 .onboarding-overlay {
   position: fixed;

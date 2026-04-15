@@ -207,7 +207,7 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, on
         {/* Side tabs */}
         <div className="side-tabs">
           {MODULE_REGISTRY.map(mod => {
-            const locked = mod.isPremium && !userStatus.isPremium;
+            const locked = mod.isPremium && !userStatus.isPremium && userStatus.status !== 'trial';
             return (
               <button key={mod.id}
                 className={`side-tab ${activeModule === mod.id ? 'side-tab--active' : ''} ${mod.isPremium ? 'side-tab--premium' : ''} ${locked ? 'side-tab--locked' : ''}`}

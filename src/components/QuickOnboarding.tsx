@@ -91,9 +91,8 @@ export function QuickOnboarding({ onComplete }: QuickOnboardingProps) {
   return (
     <div className="onboarding-overlay">
       <div className="onboarding-card">
-        <div className="onboarding-header font-typewriter">
-          <span className="stamp">НОВОЕ ДЕЛО</span>
-          <h2>Расскажи о питомце</h2>
+        <div className="quick-onboarding-logo">
+          <img src="/PetPath/logo.png" alt="PetPath" />
         </div>
 
         <p className="quick-onboarding-hint">

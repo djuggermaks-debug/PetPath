@@ -89,12 +89,12 @@ export function QuickOnboarding({ onComplete }: QuickOnboardingProps) {
   };
 
   return (
-    <div className="onboarding-overlay">
-      <div className="onboarding-card">
-        <div className="quick-onboarding-logo">
-          <img src="/PetPath/logo.png" alt="PetPath" />
-        </div>
+    <div className="quick-onboarding-overlay">
+      <div className="quick-onboarding-top">
+        <img src="/PetPath/logo.png" alt="PetPath" className="quick-onboarding-bg-logo" />
+      </div>
 
+      <div className="onboarding-card">
         <p className="quick-onboarding-hint">
           Имя, вид, пол, возраст — одним предложением.<br />
           Или нажми микрофон и просто скажи.

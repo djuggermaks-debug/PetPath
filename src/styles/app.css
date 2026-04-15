@@ -60,14 +60,27 @@
 }
 
 /* ─── QUICK ONBOARDING ───────────────────────────────────── */
-.quick-onboarding-logo {
+.quick-onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--paper-bg);
   display: flex;
-  justify-content: center;
-  margin-bottom: 8px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
 }
-.quick-onboarding-logo img {
-  width: 100px;
-  height: 100px;
+.quick-onboarding-top {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+.quick-onboarding-bg-logo {
+  width: 160px;
+  height: 160px;
   object-fit: contain;
 }
 .quick-onboarding-hint {

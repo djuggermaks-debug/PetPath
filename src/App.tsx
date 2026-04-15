@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import type { Pet } from './types';
 import { OnboardingForm } from './components/OnboardingForm';
+import { QuickOnboarding } from './components/QuickOnboarding';
 import { PawLoader } from './components/PawLoader';
 import { PetFolder } from './components/PetFolder';
 import { WelcomeScreen } from './components/WelcomeScreen';
+import type { PetProfileDraft } from './ai/breedDetector';
 import { loadAllPets, savePet } from './storage';
 import { useUserStatus } from './hooks/useUserStatus';
 
@@ -14,6 +16,7 @@ function App() {
   const [pets, setPets] = useState<Pet[]>([]);
   const [activePet, setActivePet] = useState<Pet | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [quickDraft, setQuickDraft] = useState<PetProfileDraft | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
   const [isFirstLaunch, setIsFirstLaunch] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -87,8 +90,11 @@ function App() {
         />
       )}
 
-      {!showWelcome && pets.length === 0 && !showOnboarding && (
-        <OnboardingForm onComplete={handleAddPet} />
+      {!showWelcome && pets.length === 0 && !showOnboarding && !quickDraft && (
+        <QuickOnboarding onComplete={(draft) => {
+          setQuickDraft(draft);
+          setShowOnboarding(true);
+        }} />
       )}
 
       {activePet && (
@@ -105,7 +111,23 @@ function App() {
       )}
 
       {showOnboarding && (
-        <OnboardingForm onComplete={handleAddPet} onCancel={pets.length > 0 ? () => setShowOnboarding(false) : undefined} />
+        <OnboardingForm
+          onComplete={(pet) => { setQuickDraft(null); handleAddPet(pet); }}
+          onCancel={pets.length > 0 ? () => { setShowOnboarding(false); setQuickDraft(null); } : undefined}
+          initialPet={quickDraft ? {
+            id: crypto.randomUUID(),
+            name: quickDraft.name,
+            species: quickDraft.species,
+            gender: quickDraft.gender,
+            breed: quickDraft.breed,
+            birthDate: quickDraft.birthDate,
+            color: quickDraft.color,
+            weight: 0,
+            weightUnit: 'kg',
+            caseNumber: `ДЕЛ-${String(Math.floor(Math.random() * 9000) + 1000)}`,
+            createdAt: new Date().toISOString(),
+          } : undefined}
+        />
       )}
     </>
   );

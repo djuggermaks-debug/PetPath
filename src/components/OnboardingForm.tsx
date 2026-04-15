@@ -25,6 +25,7 @@ export function OnboardingForm({ onComplete, initialPet, onCancel }: OnboardingF
     gender: (initialPet?.gender ?? 'male') as Pet['gender'],
     color: initialPet?.color ?? '',
   });
+
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,8 +40,9 @@ export function OnboardingForm({ onComplete, initialPet, onCancel }: OnboardingF
       const mimeType = dataUrl.split(':')[1].split(';')[0];
       setDetectingBreed(true);
       try {
-        const breed = await detectPetBreed(base64, mimeType, form.species);
-        if (breed) setForm(prev => ({ ...prev, breed }));
+        const info = await detectPetBreed(base64, mimeType, form.species);
+        if (info.breed) setForm(prev => ({ ...prev, breed: info.breed }));
+        if (info.color) setForm(prev => ({ ...prev, color: info.color }));
       } finally {
         setDetectingBreed(false);
       }

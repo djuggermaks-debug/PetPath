@@ -41,6 +41,7 @@ export interface PetProfileDraft {
   breed: string;
   birthDate: string;
   color: string;
+  weight: number;
 }
 
 export async function parsePetProfile(text: string): Promise<PetProfileDraft> {
@@ -58,7 +59,8 @@ export async function parsePetProfile(text: string): Promise<PetProfileDraft> {
   "gender": "male"|"female",
   "breed": "порода или пустая строка",
   "birthDate": "YYYY-MM-DD или пустая строка",
-  "color": "окрас или пустая строка"
+  "color": "окрас или пустая строка",
+  "weight": число в кг или 0
 }
 
 Правила:
@@ -66,7 +68,8 @@ export async function parsePetProfile(text: string): Promise<PetProfileDraft> {
 - Пол: "кот", "пёс", "мальчик", "самец" → male; "кошка", "собака", "девочка", "самка" → female
 - Вид по умолчанию если не указан: "cat"
 - Пол по умолчанию если не указан: "male"
-- Пустые строки для полей которые не упомянуты` }],
+- Вес: число в кг, если не указан — 0
+- Пустые строки для строковых полей которые не упомянуты` }],
     }],
     generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
   });
@@ -75,6 +78,6 @@ export async function parsePetProfile(text: string): Promise<PetProfileDraft> {
   try {
     return JSON.parse(raw);
   } catch {
-    return { name: '', species: 'cat', gender: 'male', breed: '', birthDate: '', color: '' };
+    return { name: '', species: 'cat', gender: 'male', breed: '', birthDate: '', color: '', weight: 0 };
   }
 }

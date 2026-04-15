@@ -122,7 +122,7 @@ function App() {
             breed: quickDraft.breed,
             birthDate: quickDraft.birthDate,
             color: quickDraft.color,
-            weight: 0,
+            weight: quickDraft.weight ?? 0,
             weightUnit: 'kg',
             caseNumber: `ДЕЛ-${String(Math.floor(Math.random() * 9000) + 1000)}`,
             createdAt: new Date().toISOString(),

@@ -96,14 +96,14 @@ export function QuickOnboarding({ onComplete }: QuickOnboardingProps) {
 
       <div className="onboarding-card">
         <p className="quick-onboarding-hint">
-          Имя, вид, пол, возраст — одним предложением.<br />
+          Имя, вид, пол, возраст, вес — одним предложением.<br />
           Или нажми микрофон и просто скажи.
         </p>
 
         <div className="quick-onboarding-examples">
           <span>Например:</span>
-          <em>«Барсик, кот, 3 года, рыжий мейн-кун»</em>
-          <em>«Белла, собака-девочка, 2 года»</em>
+          <em>«Барсик, кот, 3 года, рыжий мейн-кун, 5 кг»</em>
+          <em>«Белла, собака-девочка, 2 года, 8 кг»</em>
         </div>
 
         <div className={`input-bar-inner ${recording ? 'input-bar-inner--recording' : ''}`} style={{ marginTop: '16px' }}>

@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom';
 import { useState } from 'react';
 import { Loader } from 'lucide-react';
 import { getUserId } from '../storage';
+import { useTranslation } from 'react-i18next';
 
 const SUPABASE_URL = 'https://qkraaygwvnwzotyqdnlx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gHQhjhxovzymM7ELtSyxrg_Lq3XQduP';
@@ -12,12 +13,13 @@ interface PaywallProps {
 }
 
 export function Paywall({ onClose, onPurchased }: PaywallProps) {
+  const { t } = useTranslation();
   const [buying, setBuying] = useState(false);
   const [error, setError] = useState('');
 
   const handleBuy = async () => {
     const tg = (window as any).Telegram?.WebApp;
-    if (!tg) { setError('Откройте в Telegram'); return; }
+    if (!tg) { setError(t('paywall.openInTg')); return; }
     setBuying(true);
     setError('');
     try {
@@ -30,12 +32,12 @@ export function Paywall({ onClose, onPurchased }: PaywallProps) {
       if (data.error) throw new Error(data.error);
       tg.openInvoice(data.link, (status: string) => {
         if (status === 'paid') {
-          tg.showAlert('✅ Premium активирован на 30 дней!');
+          tg.showAlert(t('paywall.premiumActivated'));
           onPurchased();
         }
       });
     } catch (e) {
-      setError('Ошибка: ' + String(e));
+      setError('Error: ' + String(e));
     } finally {
       setBuying(false);
     }
@@ -45,14 +47,14 @@ export function Paywall({ onClose, onPurchased }: PaywallProps) {
     <div className="paywall-overlay">
       <div className="paywall-card">
         <div className="paywall-icon">⭐</div>
-        <h2 className="paywall-title font-typewriter">Premium доступ</h2>
-        <p className="paywall-subtitle">Пробный период закончился. Для доступа ко всем функциям нужна подписка.</p>
+        <h2 className="paywall-title font-typewriter">{t('paywall.title')}</h2>
+        <p className="paywall-subtitle">{t('paywall.subtitle')}</p>
 
         <div className="paywall-features">
-          <div className="paywall-feature">📊 Питание и привычки</div>
-          <div className="paywall-feature">📄 Документы и медиабанк</div>
-          <div className="paywall-feature">🩺 Ветеринарный анализ</div>
-          <div className="paywall-feature">📋 Показать врачу</div>
+          <div className="paywall-feature">{t('paywall.features.nutrition')}</div>
+          <div className="paywall-feature">{t('paywall.features.documents')}</div>
+          <div className="paywall-feature">{t('paywall.features.vet')}</div>
+          <div className="paywall-feature">{t('paywall.features.card')}</div>
         </div>
 
         <div className="paywall-price-block">
@@ -60,14 +62,14 @@ export function Paywall({ onClose, onPurchased }: PaywallProps) {
           <span className="paywall-price-new">300 ⭐</span>
           <span className="paywall-price-badge font-typewriter">-50%</span>
         </div>
-        <p className="paywall-period">/ 30 дней</p>
+        <p className="paywall-period">{t('paywall.period')}</p>
 
         <button className="paywall-buy-btn font-typewriter" onClick={handleBuy} disabled={buying}>
-          {buying ? <><Loader size={14} className="spin" /> Загрузка...</> : '⭐ Купить Premium'}
+          {buying ? <><Loader size={14} className="spin" /> {t('common.loading')}</> : t('paywall.buyBtn')}
         </button>
         {error && <p className="paywall-error">{error}</p>}
 
-        <button className="paywall-close-btn" onClick={onClose}>Закрыть</button>
+        <button className="paywall-close-btn" onClick={onClose}>{t('paywall.closeBtn')}</button>
       </div>
     </div>,
     document.body

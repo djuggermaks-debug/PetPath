@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { Bell, Trash2, ChevronDown, Camera, Pencil } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { appLang } from '../i18n';
 
 // ── Empty state ───────────────────────────────────────────────
 export function EmptyState({ label }: { label: string }) {
+  const { t } = useTranslation();
   return (
     <div className="module-empty">
-      <p>Записей в разделе «{label}» пока нет</p>
-      <p className="module-empty-hint">Напишите что-нибудь внизу</p>
+      <p>{t('moduleShared.emptyTitle', { label })}</p>
+      <p className="module-empty-hint">{t('moduleShared.emptyHint')}</p>
     </div>
   );
 }
@@ -71,7 +74,7 @@ export function RecordCard({ date, badge, badgeColor, title, fields, notify, pho
           {photo && (
             <img
               src={`data:image/jpeg;base64,${photo}`}
-              alt="фото"
+              alt="photo"
               className="record-photo"
             />
           )}
@@ -82,8 +85,8 @@ export function RecordCard({ date, badge, badgeColor, title, fields, notify, pho
 }
 
 // ── Severity badge ────────────────────────────────────────────
-export function severityLabel(s: 'mild' | 'moderate' | 'severe') {
-  return { mild: 'Лёгкая', moderate: 'Средняя', severe: 'Тяжёлая' }[s];
+export function severityLabel(s: 'mild' | 'moderate' | 'severe', t: (key: string) => string) {
+  return t(`severity.${s}`);
 }
 
 export function severityColor(s: 'mild' | 'moderate' | 'severe') {
@@ -94,5 +97,5 @@ export function severityColor(s: 'mild' | 'moderate' | 'severe') {
 export function formatDate(iso: string) {
   if (!iso) return '';
   const d = new Date(iso);
-  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
+  return d.toLocaleDateString(appLang === 'ru' ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }

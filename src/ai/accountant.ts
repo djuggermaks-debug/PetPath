@@ -1,6 +1,7 @@
 import { geminiRequest } from './config';
 import type { Pet } from '../types';
 import { devLogger } from '../dev/logger';
+import { appLang } from '../i18n';
 
 export interface ParsedAtom {
   module: 'health' | 'medications' | 'vaccines' | 'allergies' | 'nutrition' | 'habits' | 'documents' | 'items' | 'expenses' | 'profile';
@@ -10,7 +11,7 @@ export interface ParsedAtom {
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
-const SYSTEM_PROMPT = `Ты — система распознавания записей о питомцах. Получаешь сообщение от владельца питомца и разбиваешь его на атомы — отдельные факты. Каждый факт идёт в свой модуль.
+const SYSTEM_PROMPT_RU = `Ты — система распознавания записей о питомцах. Получаешь сообщение от владельца питомца и разбиваешь его на атомы — отдельные факты. Каждый факт идёт в свой модуль.
 
 МОДУЛИ И ИХ ПОЛЯ:
 
@@ -53,107 +54,89 @@ profile (обновление данных профиля питомца: пор
 Сообщение: "сходили к ветеринару, доктор Иванов поставил диагноз отит, назначил отипакс капли 3 раза в день 7 дней"
 Ответ: [{"module":"health","confidence":0.95,"data":{"date":"${TODAY}","type":"visit","description":"Визит к ветеринару","vet":"Иванов","result":"Поставлен диагноз отит"}},{"module":"health","confidence":0.95,"data":{"date":"${TODAY}","type":"diagnosis","description":"Отит","diagnosis":"Отит"}},{"module":"medications","confidence":0.95,"data":{"name":"Отипакс","dose":"3","unit":"кап","frequency":"3 раза в день","startDate":"${TODAY}","endDate":"","reason":"Отит","prescribedBy":"vet","notify":false}}]
 
-Сообщение: "мурка чихает уже 3 дня, вялая, плохо ест"
-Ответ: [{"module":"health","confidence":0.9,"data":{"date":"${TODAY}","type":"symptom","description":"Чихает 3 дня","severity":"mild"}},{"module":"health","confidence":0.85,"data":{"date":"${TODAY}","type":"symptom","description":"Вялость"}},{"module":"health","confidence":0.85,"data":{"date":"${TODAY}","type":"symptom","description":"Плохой аппетит"}}]
-
-Сообщение: "сделали прививку от бешенства нобивак, следующая через год"
-Ответ: [{"module":"vaccines","confidence":0.95,"data":{"name":"Бешенство","date":"${TODAY}","drug":"Нобивак","nextDate":"","notify":true}}]
-
-Сообщение: "барсик ест роял канин сухой 80г 2 раза в день, курицу не переносит"
-Ответ: [{"module":"nutrition","confidence":0.95,"data":{"date":"${TODAY}","feedType":"dry","brand":"Royal Canin","portionSize":"80г","frequency":"2 раза в день","dislikes":"курица"}},{"module":"allergies","confidence":0.85,"data":{"allergen":"курица","allergenType":"food","reaction":"непереносимость","severity":"mild","firstDate":"${TODAY}","confirmedByVet":false}}]
-
-Сообщение: "научился команде сидеть"
-Ответ: [{"module":"habits","confidence":0.95,"data":{"date":"${TODAY}","category":"command","description":"Выучил команду Сидеть"}}]
-
-Сообщение: "оформили ветеринарный паспорт серия AB 123456"
-Ответ: [{"module":"documents","confidence":0.95,"data":{"type":"passport","title":"Ветеринарный паспорт","number":"AB 123456","date":"${TODAY}"}}]
-
-Сообщение: "купили мышку на верёвке, барсик обожает"
-Ответ: [{"module":"items","confidence":0.95,"data":{"name":"Мышка на верёвке","category":"toy","condition":"new","reaction":"loves","purchaseDate":"${TODAY}"}}]
-
-Сообщение: "любимая чесалка"
-Ответ: [{"module":"items","confidence":0.9,"data":{"name":"Чесалка","category":"toy","reaction":"loves","purchaseDate":"${TODAY}"}}]
-
-Сообщение: "потратил 1200 рублей на корм роял канин в зоомагазине"
-Ответ: [{"module":"expenses","confidence":0.95,"data":{"date":"${TODAY}","amount":1200,"currency":"₽","category":"food","description":"Корм Royal Canin","shop":"зоомагазин"}}]
-
-Сообщение: "визит к ветеринару обошёлся в 3500₽"
-Ответ: [{"module":"expenses","confidence":0.95,"data":{"date":"${TODAY}","amount":3500,"currency":"₽","category":"health","description":"Визит к ветеринару"}}]
-
-Сообщение: "Порода клепа: дворняга"
-Ответ: [{"module":"profile","confidence":0.95,"data":{"breed":"Дворняга"}}]
-
-Сообщение: "Клепа весит 4.2 кг"
-Ответ: [{"module":"profile","confidence":0.95,"data":{"weight":4.2}}]
-
-Сообщение: "Клепа серая с белыми лапками"
-Ответ: [{"module":"profile","confidence":0.9,"data":{"color":"Серая с белыми лапками"}}]
-
 ПРАВИЛА:
-- Записывай только ФАКТЫ, не намерения. "Надо дать", "надо записать", "собираюсь" — игнорируй. Только то что уже произошло.
-- БУДУЩИЕ СОБЫТИЯ — игнорируй. "Завтра прививку делаем", "в пятницу к врачу идём", "на следующей неделе сдадим анализы" — это планы, не факты, верни [].
-- ПОВЕЛИТЕЛЬНОЕ НАКЛОНЕНИЕ ("дай таблетку", "дайте капли") — считай фактом. Владельцы часто пишут так в разговорном стиле вместо "дал таблетку". Записывай как будто действие уже выполнено.
-- Исключение из правила будущих событий: "записали на прививку / к врачу" — здесь ФАКТ это сама запись (она уже произошла). Сохраняй в vaccines или health.
-- "Запись на прививку" → vaccines (не health). Vaccines используй для любого упоминания прививок, вакцин, вакцинации.
-- Лекарство без названия → используй общее: "Антигельминтное средство", "Капли от блох", "Паста для вывода шерсти" и т.д.
+- Записывай только ФАКТЫ, не намерения. "Надо дать", "надо записать", "собираюсь" — игнорируй.
+- БУДУЩИЕ СОБЫТИЯ — игнорируй. "Завтра прививку делаем" — это план, не факт, верни [].
+- ПОВЕЛИТЕЛЬНОЕ НАКЛОНЕНИЕ ("дай таблетку") — считай фактом, записывай как выполненное.
 - Если уверенность < 0.7 — не включай в ответ
 - Дата если не указана = ${TODAY}
 - Отвечай ТОЛЬКО JSON массивом, без markdown, без пояснений
-- Если совсем непонятно — верни пустой массив []
+- Если совсем непонятно — верни пустой массив []`;
 
-ДОПОЛНИТЕЛЬНЫЕ ПРИМЕРЫ:
+const SYSTEM_PROMPT_EN = `You are a pet record recognition system. You receive a message from a pet owner and break it into atoms — individual facts. Each fact goes to its module.
 
-Сообщение: "записала ьиьи на ежегодную прививку"
-Ответ: [{"module":"vaccines","confidence":0.85,"data":{"name":"Ежегодная прививка","date":"${TODAY}","notify":true}}]
+MODULES AND THEIR FIELDS:
 
-Сообщение: "надо ьиьи дать таблетку от глистов"
-Ответ: []
+health (health, symptoms, vet visits, diagnoses):
+{ "module": "health", "confidence": 0.9, "data": { "date": "YYYY-MM-DD", "type": "symptom"|"visit"|"diagnosis", "description": "text", "severity": "mild"|"moderate"|"severe", "vet": "vet name", "clinic": "clinic", "reason": "reason for visit", "result": "result", "diagnosis": "diagnosis", "nextVisitDate": "YYYY-MM-DD", "nextVisitNotify": true|false } }
 
-Сообщение: "надо записать к ветеринару, вялый последнее время"
-Ответ: [{"module":"health","confidence":0.85,"data":{"date":"${TODAY}","type":"symptom","description":"Вялость","severity":"mild"}}]
+medications (medications, pills, drops, injections):
+{ "module": "medications", "confidence": 0.9, "data": { "name": "name", "dose": "5", "unit": "mg"|"ml"|"tab"|"drop"|"other", "frequency": "once a day", "startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD", "reason": "reason", "prescribedBy": "vet"|"self", "notify": true|false } }
 
-Сообщение: "дала таблетку от глистов, еле запихнула"
-Ответ: [{"module":"medications","confidence":0.9,"data":{"name":"Антигельминтное средство","unit":"таб","startDate":"${TODAY}","reason":"Дегельминтизация","prescribedBy":"self","notify":false}}]
+vaccines (vaccines, vaccinations):
+{ "module": "vaccines", "confidence": 0.9, "data": { "name": "vaccine name", "date": "YYYY-MM-DD", "drug": "drug", "manufacturer": "manufacturer", "vet": "vet", "clinic": "clinic", "nextDate": "YYYY-MM-DD", "notify": true|false } }
 
-Сообщение: "завтра Клепе прививку делаем"
-Ответ: []
+allergies (allergy, reaction, intolerance):
+{ "module": "allergies", "confidence": 0.9, "data": { "allergen": "allergen", "allergenType": "food"|"plant"|"drug"|"other", "reaction": "how it manifests", "severity": "mild"|"moderate"|"severe", "firstDate": "YYYY-MM-DD", "confirmedByVet": true|false } }
 
-Сообщение: "Клепу на прививку записали на вторник"
-Ответ: [{"module":"vaccines","confidence":0.85,"data":{"name":"Прививка","date":"${TODAY}","notify":true}}]
+nutrition (food, diet, feeding):
+{ "module": "nutrition", "confidence": 0.9, "data": { "date": "YYYY-MM-DD", "feedType": "dry"|"wet"|"natural"|"mixed", "brand": "brand", "portionSize": "portion", "frequency": "frequency", "restrictions": "restrictions", "favorites": "likes", "dislikes": "dislikes", "reaction": "reaction" } }
 
-Сообщение: "в пятницу идём к ветеринару на осмотр"
-Ответ: []
+habits (behaviour, activity, commands, play, sleep):
+{ "module": "habits", "confidence": 0.9, "data": { "date": "YYYY-MM-DD", "category": "activity"|"sleep"|"play"|"command"|"behavior"|"change", "description": "description", "activityLevel": "low"|"medium"|"high" } }
 
-Сообщение: "дай Дронтал, полтаблетки"
-Ответ: [{"module":"medications","confidence":0.9,"data":{"name":"Дронтал","dose":"0.5","unit":"таб","startDate":"${TODAY}","reason":"Дегельминтизация","prescribedBy":"self","notify":false}}]`;
+documents (passport, microchip, insurance, pedigree):
+{ "module": "documents", "confidence": 0.9, "data": { "type": "passport"|"chip"|"insurance"|"pedigree"|"other", "title": "title", "number": "number", "date": "YYYY-MM-DD", "expiry": "YYYY-MM-DD", "notes": "notes" } }
+
+expenses (pet expenses: food, vet visits, grooming, purchases):
+{ "module": "expenses", "confidence": 0.9, "data": { "date": "YYYY-MM-DD", "amount": 500, "currency": "€", "category": "food"|"health"|"grooming"|"items"|"other", "description": "description", "shop": "shop or clinic" } }
+
+items (pet items: toys, beds, bowls, leashes, clothing, cages, carriers, any objects):
+{ "module": "items", "confidence": 0.9, "data": { "name": "name", "category": "toy"|"bed"|"feeder"|"leash"|"clothing"|"cage"|"other", "condition": "new"|"used"|"worn", "reaction": "loves"|"likes"|"ignores"|"afraid", "purchaseDate": "YYYY-MM-DD", "notes": "notes" } }
+
+profile (update pet profile: breed, weight, date of birth, colour, gender):
+{ "module": "profile", "confidence": 0.9, "data": { "breed": "breed", "weight": 4.5, "birthDate": "YYYY-MM-DD", "color": "colour", "gender": "male"|"female" } }
+Only include profile fields that are explicitly mentioned.
+
+RULES:
+- Record only FACTS, not intentions. "Need to give", "planning to", "will" — ignore these.
+- FUTURE EVENTS — ignore. "Tomorrow we're getting a vaccine" — that's a plan, return [].
+- IMPERATIVE mood ("give the pill") — treat as a fact, record as already done.
+- If confidence < 0.7 — do not include in response
+- Date if not specified = ${TODAY}
+- Reply ONLY with a JSON array, no markdown, no explanations
+- If unclear — return empty array []`;
+
+function getSystemPrompt() {
+  return appLang === 'ru' ? SYSTEM_PROMPT_RU : SYSTEM_PROMPT_EN;
+}
 
 async function parseRawResponse(raw: string | undefined, json: unknown): Promise<ParsedAtom[]> {
   if (!raw) {
-    devLogger.log('error', 'Gemini не вернул ответ', json);
+    devLogger.log('error', 'Gemini returned no response', json);
     return [];
   }
-  devLogger.log('parse', 'Сырой ответ Gemini', raw);
+  devLogger.log('parse', 'Raw Gemini response', raw);
   try {
     const atoms = JSON.parse(raw);
     const filtered = Array.isArray(atoms) ? atoms.filter((a: ParsedAtom) => a.confidence >= 0.7) : [];
-    devLogger.log('parse', `Атомов распознано: ${filtered.length} из ${Array.isArray(atoms) ? atoms.length : 0}`, filtered);
+    devLogger.log('parse', `Atoms recognised: ${filtered.length} of ${Array.isArray(atoms) ? atoms.length : 0}`, filtered);
     return filtered;
   } catch (e) {
-    devLogger.log('error', 'Ошибка парсинга JSON', { raw, error: String(e) });
+    devLogger.log('error', 'JSON parse error', { raw, error: String(e) });
     return [];
   }
 }
 
 export async function parseUserText(text: string, pet: Pet): Promise<ParsedAtom[]> {
-  const prompt = `Питомец: ${pet.name} (${pet.species}${pet.breed ? ', ' + pet.breed : ''})
-Сообщение: "${text}"
+  const prompt = appLang === 'ru'
+    ? `Питомец: ${pet.name} (${pet.species}${pet.breed ? ', ' + pet.breed : ''})\nСообщение: "${text}"\n\nВерни JSON массив атомов.`
+    : `Pet: ${pet.name} (${pet.species}${pet.breed ? ', ' + pet.breed : ''})\nMessage: "${text}"\n\nReturn a JSON array of atoms.`;
 
-Верни JSON массив атомов.`;
-
-  devLogger.log('parse', 'Отправлен запрос к Gemini', { text, pet: pet.name });
+  devLogger.log('parse', 'Sending request to Gemini', { text, pet: pet.name });
 
   const response = await geminiRequest({
-    system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    system_instruction: { parts: [{ text: getSystemPrompt() }] },
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
   });
@@ -168,17 +151,14 @@ export async function parseImageData(
   caption: string,
   pet: Pet,
 ): Promise<ParsedAtom[]> {
-  const prompt = `Питомец: ${pet.name} (${pet.species}${pet.breed ? ', ' + pet.breed : ''})
-На фото — упаковка лекарства, корма, этикетка или чек.${caption ? `\nПодпись владельца (дополнительный контекст к фото): "${caption}"` : ''}
+  const prompt = appLang === 'ru'
+    ? `Питомец: ${pet.name} (${pet.species}${pet.breed ? ', ' + pet.breed : ''})\nНа фото — упаковка лекарства, корма, этикетка или чек.${caption ? `\nПодпись владельца: "${caption}"` : ''}\n\nВАЖНО: читай информацию с фото. Подпись — контекст, не намерение.\n\nВерни JSON массив атомов.`
+    : `Pet: ${pet.name} (${pet.species}${pet.breed ? ', ' + pet.breed : ''})\nThe photo shows a medication package, food package, label or receipt.${caption ? `\nOwner's caption: "${caption}"` : ''}\n\nIMPORTANT: read information from the photo. The caption is context, not intention.\n\nReturn a JSON array of atoms.`;
 
-ВАЖНО: читай информацию с фото (название, дозировка, состав). Подпись — контекст, не намерение. Правило "игнорировать намерения" к подписи НЕ применяется.
-
-Верни JSON массив атомов.`;
-
-  devLogger.log('parse', 'Отправлен запрос к Gemini (фото)', { mimeType, caption, pet: pet.name });
+  devLogger.log('parse', 'Sending request to Gemini (photo)', { mimeType, caption, pet: pet.name });
 
   const response = await geminiRequest({
-    system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    system_instruction: { parts: [{ text: getSystemPrompt() }] },
     contents: [{
       parts: [
         { inline_data: { mime_type: mimeType, data: base64 } },

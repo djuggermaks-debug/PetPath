@@ -3,6 +3,7 @@ import type { Pet } from '../types';
 import { Camera, ChevronDown } from 'lucide-react';
 import { detectPetBreed } from '../ai/breedDetector';
 import { PawLoader } from './PawLoader';
+import { useTranslation } from 'react-i18next';
 
 interface OnboardingFormProps {
   onComplete: (pet: Pet) => void;
@@ -11,6 +12,7 @@ interface OnboardingFormProps {
 }
 
 export function OnboardingForm({ onComplete, initialPet, onCancel }: OnboardingFormProps) {
+  const { t } = useTranslation();
   const isEditing = !!initialPet;
 
   const [photo, setPhoto] = useState<string | null>(initialPet?.photo ?? null);
@@ -35,7 +37,6 @@ export function OnboardingForm({ onComplete, initialPet, onCancel }: OnboardingF
     reader.onload = async (ev) => {
       const dataUrl = ev.target?.result as string;
       setPhoto(dataUrl);
-      // Auto-detect breed
       const base64 = dataUrl.split(',')[1];
       const mimeType = dataUrl.split(':')[1].split(';')[0];
       setDetectingBreed(true);
@@ -59,7 +60,7 @@ export function OnboardingForm({ onComplete, initialPet, onCancel }: OnboardingF
       weight: parseFloat(form.weight) || 0,
       weightUnit: 'kg',
       photo: photo || undefined,
-      caseNumber: initialPet?.caseNumber ?? `ДЕЛ-${String(Math.floor(Math.random() * 9000) + 1000)}`,
+      caseNumber: initialPet?.caseNumber ?? `${t('pet.casePrefix')}-${String(Math.floor(Math.random() * 9000) + 1000)}`,
       createdAt: initialPet?.createdAt ?? new Date().toISOString(),
     };
     onComplete(pet);
@@ -72,53 +73,51 @@ export function OnboardingForm({ onComplete, initialPet, onCancel }: OnboardingF
     <div className="onboarding-overlay">
       <div className="onboarding-card">
         <div className="onboarding-header font-typewriter">
-          <span className="stamp">{isEditing ? 'РЕДАКТИРОВАТЬ' : 'НОВОЕ ДЕЛО'}</span>
-          <h2>{isEditing ? 'Изменить профиль' : 'Добавить питомца'}</h2>
+          <span className="stamp">{isEditing ? t('onboarding.editCase') : t('onboarding.newCase')}</span>
+          <h2>{isEditing ? t('onboarding.editProfile') : t('onboarding.addPet')}</h2>
           {onCancel && (
             <button className="onboarding-cancel" onClick={onCancel}>✕</button>
           )}
         </div>
 
-        {/* Photo upload */}
         <div className="photo-upload" onClick={() => fileRef.current?.click()}>
           {photo ? (
             <img src={photo} alt="Pet" className="photo-preview" />
           ) : (
             <div className="photo-placeholder">
               <Camera size={32} strokeWidth={1.5} />
-              <span>Фото питомца</span>
+              <span>{t('onboarding.photoPlaceholder')}</span>
             </div>
           )}
           <input ref={fileRef} type="file" accept="image/*" onChange={handlePhoto} hidden />
         </div>
 
-        {/* Form fields */}
         <div className="form-fields">
           <div className="field-group">
-            <label className="field-label font-typewriter">Кличка *</label>
-            <input className="field-input" placeholder="Барсик" value={form.name} onChange={set('name')} />
+            <label className="field-label font-typewriter">{t('onboarding.nameLabel')}</label>
+            <input className="field-input" placeholder={t('onboarding.namePlaceholder')} value={form.name} onChange={set('name')} />
           </div>
 
           <div className="field-row">
             <div className="field-group">
-              <label className="field-label font-typewriter">Вид</label>
+              <label className="field-label font-typewriter">{t('onboarding.speciesLabel')}</label>
               <div className="select-wrapper">
                 <select className="field-input" value={form.species} onChange={set('species')}>
-                  <option value="cat">Кот / Кошка</option>
-                  <option value="dog">Собака</option>
-                  <option value="bird">Птица</option>
-                  <option value="other">Другое</option>
+                  <option value="cat">{t('pet.species.catSelect')}</option>
+                  <option value="dog">{t('pet.species.dog')}</option>
+                  <option value="bird">{t('pet.species.bird')}</option>
+                  <option value="other">{t('pet.species.other')}</option>
                 </select>
                 <ChevronDown size={14} className="select-icon" />
               </div>
             </div>
 
             <div className="field-group">
-              <label className="field-label font-typewriter">Пол</label>
+              <label className="field-label font-typewriter">{t('onboarding.genderLabel')}</label>
               <div className="select-wrapper">
                 <select className="field-input" value={form.gender} onChange={set('gender')}>
-                  <option value="male">Мальчик</option>
-                  <option value="female">Девочка</option>
+                  <option value="male">{t('pet.gender.male')}</option>
+                  <option value="female">{t('pet.gender.female')}</option>
                 </select>
                 <ChevronDown size={14} className="select-icon" />
               </div>
@@ -126,10 +125,10 @@ export function OnboardingForm({ onComplete, initialPet, onCancel }: OnboardingF
           </div>
 
           <div className="field-group">
-            <label className="field-label font-typewriter">Порода</label>
+            <label className="field-label font-typewriter">{t('onboarding.breedLabel')}</label>
             <input
               className="field-input"
-              placeholder={detectingBreed ? 'Определяю...' : 'Мейн-кун'}
+              placeholder={detectingBreed ? t('onboarding.breedDetecting') : t('onboarding.breedPlaceholder')}
               value={form.breed}
               onChange={set('breed')}
               disabled={detectingBreed}
@@ -138,12 +137,12 @@ export function OnboardingForm({ onComplete, initialPet, onCancel }: OnboardingF
 
           <div className="field-row">
             <div className="field-group">
-              <label className="field-label font-typewriter">Дата рождения</label>
+              <label className="field-label font-typewriter">{t('onboarding.birthDateLabel')}</label>
               <input className="field-input" type="date" value={form.birthDate} onChange={set('birthDate')} />
             </div>
 
             <div className="field-group">
-              <label className="field-label font-typewriter">Вес (кг)</label>
+              <label className="field-label font-typewriter">{t('onboarding.weightLabel')}</label>
               <input
                 className="field-input"
                 type="number"
@@ -156,8 +155,8 @@ export function OnboardingForm({ onComplete, initialPet, onCancel }: OnboardingF
           </div>
 
           <div className="field-group">
-            <label className="field-label font-typewriter">Окрас / описание</label>
-            <input className="field-input" placeholder="Рыжий, пушистый" value={form.color} onChange={set('color')} />
+            <label className="field-label font-typewriter">{t('onboarding.colorLabel')}</label>
+            <input className="field-input" placeholder={t('onboarding.colorPlaceholder')} value={form.color} onChange={set('color')} />
           </div>
         </div>
 
@@ -166,11 +165,11 @@ export function OnboardingForm({ onComplete, initialPet, onCancel }: OnboardingF
           onClick={handleSubmit}
           disabled={!form.name.trim() || saving}
         >
-          {saving ? 'Сохранение...' : isEditing ? 'Сохранить изменения' : 'Завести дело'}
+          {saving ? t('common.saving') : isEditing ? t('onboarding.submitEdit') : t('onboarding.submitNew')}
         </button>
-      {(detectingBreed || saving) && (
-        <PawLoader overlay text={detectingBreed ? 'Определяю породу...' : 'Сохранение...'} />
-      )}
+        {(detectingBreed || saving) && (
+          <PawLoader overlay text={detectingBreed ? t('onboarding.detectingBreed') : t('common.saving')} />
+        )}
       </div>
     </div>
   );

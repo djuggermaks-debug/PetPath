@@ -2,6 +2,8 @@ import { X, Share2, Check } from 'lucide-react';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Pet } from '../types';
+import { useTranslation } from 'react-i18next';
+import { formatDate } from './ModuleShared';
 
 interface VetCardProps {
   pet: Pet;
@@ -10,29 +12,39 @@ interface VetCardProps {
   onClose: () => void;
 }
 
-function formatDate(iso: string) {
-  if (!iso) return '';
-  return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function buildShareText(pet: Pet, calcAge: (b: string) => string, allData: Record<string, unknown[]>): string {
+function buildShareText(
+  pet: Pet,
+  calcAge: (b: string) => string,
+  allData: Record<string, unknown[]>,
+  t: (key: string) => string,
+): string {
   const lines: string[] = [];
-  lines.push(`🐾 КАРТОЧКА ПИТОМЦА ДЛЯ ВРАЧА`);
+  lines.push(t('vetCard.shareHeader'));
   lines.push('');
-  lines.push(`Кличка: ${pet.name}`);
-  lines.push(`Вид: ${{ cat: 'Кошка', dog: 'Собака', bird: 'Птица', other: 'Другое' }[pet.species]}`);
-  if (pet.breed) lines.push(`Порода: ${pet.breed}`);
-  lines.push(`Возраст: ${calcAge(pet.birthDate)}`);
-  if (pet.weight > 0) lines.push(`Вес: ${pet.weight} кг`);
-  if (pet.gender) lines.push(`Пол: ${pet.gender === 'male' ? 'Мальчик' : 'Девочка'}`);
-  if (pet.color) lines.push(`Окрас: ${pet.color}`);
+
+  const speciesLabel = {
+    cat: t('pet.species.cat'), dog: t('pet.species.dog'),
+    bird: t('pet.species.bird'), other: t('pet.species.other'),
+  }[pet.species];
+
+  lines.push(`${t('vetCard.shareLabels.name')}: ${pet.name}`);
+  lines.push(`${t('vetCard.shareLabels.species')}: ${speciesLabel}`);
+  if (pet.breed) lines.push(`${t('vetCard.shareLabels.breed')}: ${pet.breed}`);
+  lines.push(`${t('vetCard.shareLabels.age')}: ${calcAge(pet.birthDate)}`);
+  if (pet.weight > 0) lines.push(`${t('vetCard.shareLabels.weight')}: ${pet.weight} ${t('pet.kg')}`);
+  if (pet.gender) lines.push(`${t('vetCard.shareLabels.gender')}: ${pet.gender === 'male' ? t('pet.gender.male') : t('pet.gender.female')}`);
+  if (pet.color) lines.push(`${t('vetCard.shareLabels.color')}: ${pet.color}`);
 
   const health = (allData.health || []) as any[];
   if (health.length > 0) {
     lines.push('');
-    lines.push('── ЗДОРОВЬЕ ──');
+    lines.push(t('vetCard.shareSections.health'));
     health.slice(0, 10).forEach((e: any) => {
-      const type = { symptom: 'Симптом', visit: 'Визит', diagnosis: 'Диагноз' }[e.type as string] || e.type;
+      const type = {
+        symptom: t('vetCard.healthTypes.symptom'),
+        visit: t('vetCard.healthTypes.visit'),
+        diagnosis: t('vetCard.healthTypes.diagnosis'),
+      }[e.type as string] || e.type;
       lines.push(`• ${type}: ${e.description || e.result || ''}${e.severity ? ` (${e.severity})` : ''}${e.date ? ' — ' + formatDate(e.date) : ''}`);
     });
   }
@@ -40,9 +52,9 @@ function buildShareText(pet: Pet, calcAge: (b: string) => string, allData: Recor
   const allergies = (allData.allergies || []) as any[];
   if (allergies.length > 0) {
     lines.push('');
-    lines.push('── АЛЛЕРГИИ ──');
+    lines.push(t('vetCard.shareSections.allergies'));
     allergies.forEach((e: any) => {
-      lines.push(`• ${e.allergen} (${e.allergenType}) — ${e.reaction}${e.confirmedByVet ? ' ✓ подтверждено' : ''}`);
+      lines.push(`• ${e.allergen} (${e.allergenType}) — ${e.reaction}${e.confirmedByVet ? ' ' + t('vetCard.confirmedByVet') : ''}`);
     });
   }
 
@@ -50,7 +62,7 @@ function buildShareText(pet: Pet, calcAge: (b: string) => string, allData: Recor
   const activeMeds = meds.filter((e: any) => !e.endDate || new Date(e.endDate) >= new Date());
   if (activeMeds.length > 0) {
     lines.push('');
-    lines.push('── ЛЕКАРСТВА ──');
+    lines.push(t('vetCard.shareSections.medications'));
     activeMeds.forEach((e: any) => {
       lines.push(`• ${e.name}${e.dose ? ' ' + e.dose + (e.unit || '') : ''}${e.frequency ? ' — ' + e.frequency : ''}${e.reason ? ' (' + e.reason + ')' : ''}`);
     });
@@ -59,18 +71,19 @@ function buildShareText(pet: Pet, calcAge: (b: string) => string, allData: Recor
   const vaccines = (allData.vaccines || []) as any[];
   if (vaccines.length > 0) {
     lines.push('');
-    lines.push('── ПРИВИВКИ ──');
+    lines.push(t('vetCard.shareSections.vaccines'));
     vaccines.slice(0, 5).forEach((e: any) => {
-      lines.push(`• ${e.name}${e.date ? ' — ' + formatDate(e.date) : ''}${e.nextDate ? ' / следующая: ' + formatDate(e.nextDate) : ''}`);
+      lines.push(`• ${e.name}${e.date ? ' — ' + formatDate(e.date) : ''}${e.nextDate ? ' / ' + t('vetCard.nextDate') + formatDate(e.nextDate) : ''}`);
     });
   }
 
   lines.push('');
-  lines.push('Создано в PetPath');
+  lines.push(t('vetCard.footer'));
   return lines.join('\n');
 }
 
 export function VetCard({ pet, calcAge, allData, onClose }: VetCardProps) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   const health = (allData.health || []) as any[];
@@ -79,16 +92,15 @@ export function VetCard({ pet, calcAge, allData, onClose }: VetCardProps) {
   const activeMeds = meds.filter((e: any) => !e.endDate || new Date(e.endDate) >= new Date());
   const vaccines = (allData.vaccines || []) as any[];
 
-  const shareText = buildShareText(pet, calcAge, allData);
+  const shareText = buildShareText(pet, calcAge, allData, t);
 
   const handleShare = async () => {
     if (navigator.share) {
       try {
-        await navigator.share({ title: `Карточка ${pet.name}`, text: shareText });
+        await navigator.share({ title: t('vetCard.shareTitle', { name: pet.name }), text: shareText });
         return;
       } catch { /* fallback */ }
     }
-    // fallback: copy to clipboard
     try {
       await navigator.clipboard.writeText(shareText);
       setCopied(true);
@@ -96,34 +108,37 @@ export function VetCard({ pet, calcAge, allData, onClose }: VetCardProps) {
     } catch { /* ignore */ }
   };
 
-  const speciesLabel = { cat: 'Кошка', dog: 'Собака', bird: 'Птица', other: 'Другое' }[pet.species];
+  const speciesLabel = {
+    cat: t('pet.species.cat'), dog: t('pet.species.dog'),
+    bird: t('pet.species.bird'), other: t('pet.species.other'),
+  }[pet.species];
 
   return createPortal(
     <div className="vetcard-overlay" onClick={onClose}>
       <div className="vetcard" onClick={e => e.stopPropagation()}>
         <div className="vetcard-header">
-          <span className="font-typewriter">🩺 Карточка для врача</span>
+          <span className="font-typewriter">{t('vetCard.title')}</span>
           <button className="vetcard-close" onClick={onClose}><X size={16} /></button>
         </div>
 
         <div className="vetcard-body">
-          {/* Pet info */}
           <div className="vetcard-section vetcard-section--pet">
             {pet.photo && <img src={pet.photo} alt={pet.name} className="vetcard-photo" />}
             <div>
               <p className="vetcard-petname font-typewriter">{pet.name}</p>
-              <p className="vetcard-petinfo">{pet.breed || speciesLabel} · {calcAge(pet.birthDate)}{pet.weight > 0 ? ` · ${pet.weight} кг` : ''}</p>
-              {pet.gender && <p className="vetcard-petinfo">{pet.gender === 'male' ? '♂ Мальчик' : '♀ Девочка'}{pet.color ? ` · ${pet.color}` : ''}</p>}
+              <p className="vetcard-petinfo">{pet.breed || speciesLabel} · {calcAge(pet.birthDate)}{pet.weight > 0 ? ` · ${pet.weight} ${t('pet.kg')}` : ''}</p>
+              {pet.gender && <p className="vetcard-petinfo">{pet.gender === 'male' ? t('pet.gender.maleSym') : t('pet.gender.femaleSym')}{pet.color ? ` · ${pet.color}` : ''}</p>}
             </div>
           </div>
 
-          {/* Health */}
           {health.length > 0 && (
             <div className="vetcard-section">
-              <p className="vetcard-section-title">🏥 Здоровье</p>
+              <p className="vetcard-section-title">{t('vetCard.sectionHealth')}</p>
               {health.slice(0, 10).map((e: any) => (
                 <div key={e.id} className="vetcard-item">
-                  <span className="vetcard-item-badge">{{ symptom: 'Симптом', visit: 'Визит', diagnosis: 'Диагноз' }[e.type as string]}</span>
+                  <span className="vetcard-item-badge">
+                    {{ symptom: t('vetCard.healthTypes.symptom'), visit: t('vetCard.healthTypes.visit'), diagnosis: t('vetCard.healthTypes.diagnosis') }[e.type as string]}
+                  </span>
                   <span>{e.description || e.result || ''}</span>
                   {e.date && <span className="vetcard-item-date">{formatDate(e.date)}</span>}
                 </div>
@@ -131,10 +146,9 @@ export function VetCard({ pet, calcAge, allData, onClose }: VetCardProps) {
             </div>
           )}
 
-          {/* Allergies */}
           {allergies.length > 0 && (
             <div className="vetcard-section">
-              <p className="vetcard-section-title">⚠️ Аллергии</p>
+              <p className="vetcard-section-title">{t('vetCard.sectionAllergies')}</p>
               {allergies.map((e: any) => (
                 <div key={e.id} className="vetcard-item">
                   <span className="vetcard-item-badge">{e.allergenType}</span>
@@ -145,10 +159,9 @@ export function VetCard({ pet, calcAge, allData, onClose }: VetCardProps) {
             </div>
           )}
 
-          {/* Medications */}
           {activeMeds.length > 0 && (
             <div className="vetcard-section">
-              <p className="vetcard-section-title">💊 Лекарства</p>
+              <p className="vetcard-section-title">{t('vetCard.sectionMeds')}</p>
               {activeMeds.map((e: any) => (
                 <div key={e.id} className="vetcard-item">
                   <span className="vetcard-item-bold">{e.name}</span>
@@ -159,15 +172,14 @@ export function VetCard({ pet, calcAge, allData, onClose }: VetCardProps) {
             </div>
           )}
 
-          {/* Vaccines */}
           {vaccines.length > 0 && (
             <div className="vetcard-section">
-              <p className="vetcard-section-title">💉 Прививки</p>
+              <p className="vetcard-section-title">{t('vetCard.sectionVaccines')}</p>
               {vaccines.slice(0, 5).map((e: any) => (
                 <div key={e.id} className="vetcard-item">
                   <span className="vetcard-item-bold">{e.name}</span>
                   {e.date && <span className="vetcard-item-date"> · {formatDate(e.date)}</span>}
-                  {e.nextDate && <span className="vetcard-item-date"> / след: {formatDate(e.nextDate)}</span>}
+                  {e.nextDate && <span className="vetcard-item-date"> / {t('vetCard.nextVaccine')}{formatDate(e.nextDate)}</span>}
                 </div>
               ))}
             </div>
@@ -176,7 +188,7 @@ export function VetCard({ pet, calcAge, allData, onClose }: VetCardProps) {
 
         <div className="vetcard-footer">
           <button className="vetcard-share-btn font-typewriter" onClick={handleShare}>
-            {copied ? <><Check size={14} /> Скопировано!</> : <><Share2 size={14} /> Поделиться</>}
+            {copied ? <><Check size={14} /> {t('vetCard.shareBtnCopy')}</> : <><Share2 size={14} /> {t('vetCard.shareBtnShare')}</>}
           </button>
         </div>
       </div>

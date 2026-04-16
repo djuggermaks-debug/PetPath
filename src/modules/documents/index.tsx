@@ -4,21 +4,19 @@ import type { DocumentEntry } from '../../types/modules';
 import { loadModuleData, saveModuleData } from '../../storage';
 import { EmptyState, RecordCard } from '../../components/ModuleShared';
 import { FormSheet, Field, Input, Select } from '../../components/FormSheet';
+import { useTranslation } from 'react-i18next';
 
 const empty = (): Omit<DocumentEntry, 'id'> => ({
   type: 'passport', title: '', number: '', date: '', expiry: '', notes: '',
 });
 
-const docTypeLabel: Record<string, string> = {
-  passport: 'Паспорт', chip: 'Чип', insurance: 'Страховка',
-  pedigree: 'Родословная', other: 'Документ',
-};
 const docTypeColor: Record<string, string> = {
   passport: '#3498db', chip: '#1abc9c', insurance: '#27ae60',
   pedigree: '#9b59b6', other: '#95a5a6',
 };
 
 export function DocumentsModule({ petId }: { petId: string }) {
+  const { t } = useTranslation();
   const [entries, setEntries] = useState<DocumentEntry[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(empty());
@@ -57,22 +55,30 @@ export function DocumentsModule({ petId }: { petId: string }) {
     await saveModuleData(petId, 'documents', updated);
   };
 
+  const docTypeLabel: Record<string, string> = {
+    passport: t('documents.typePassport'),
+    chip: t('documents.typeChip'),
+    insurance: t('documents.typeInsurance'),
+    pedigree: t('documents.typePedigree'),
+    other: t('documents.typeOther'),
+  };
+
   return (
     <>
       <button className="module-add-btn" onClick={() => setShowForm(true)}>
-        <Plus size={14} /> Добавить документ
+        <Plus size={14} /> {t('documents.addBtn')}
       </button>
 
-      {entries.length === 0 ? <EmptyState label="Документы" /> : (
+      {entries.length === 0 ? <EmptyState label={t('modules.documents.label')} /> : (
         <div className="module-list">
           {entries.map(e => (
             <RecordCard key={e.id} date={e.date}
               badge={docTypeLabel[e.type]} badgeColor={docTypeColor[e.type]}
               title={e.title}
               fields={[
-                { label: 'Номер', value: e.number },
-                { label: 'Действует до', value: e.expiry },
-                { label: 'Заметки', value: e.notes },
+                { label: t('documents.fieldNumber'), value: e.number },
+                { label: t('documents.fieldExpiry'), value: e.expiry },
+                { label: t('documents.fieldNotes'), value: e.notes },
               ]}
               onEdit={() => handleEdit(e)}
               onDelete={() => handleDelete(e.id)}
@@ -82,21 +88,21 @@ export function DocumentsModule({ petId }: { petId: string }) {
       )}
 
       {showForm && (
-        <FormSheet title={editingId ? 'Редактировать документ' : 'Добавить документ'} onClose={handleClose} onSave={handleSave}>
-          <Field label="Тип документа">
+        <FormSheet title={editingId ? t('documents.formTitleEdit') : t('documents.formTitleNew')} onClose={handleClose} onSave={handleSave}>
+          <Field label={t('documents.typeLabel')}>
             <Select value={form.type} onChange={set('type')}>
-              <option value="passport">Ветеринарный паспорт</option>
-              <option value="chip">Чип</option>
-              <option value="insurance">Страховка</option>
-              <option value="pedigree">Родословная</option>
-              <option value="other">Другой документ</option>
+              <option value="passport">{t('documents.typePassportFull')}</option>
+              <option value="chip">{t('documents.typeChipFull')}</option>
+              <option value="insurance">{t('documents.typeInsuranceFull')}</option>
+              <option value="pedigree">{t('documents.typePedigreeFull')}</option>
+              <option value="other">{t('documents.typeOtherFull')}</option>
             </Select>
           </Field>
-          <Field label="Название / описание *"><Input placeholder="Например: Паспорт RU 123456" value={form.title} onChange={set('title')} /></Field>
-          <Field label="Номер документа"><Input placeholder="Серия и номер" value={form.number} onChange={set('number')} /></Field>
-          <Field label="Дата выдачи"><Input type="date" value={form.date} onChange={set('date')} /></Field>
-          <Field label="Срок действия до"><Input type="date" value={form.expiry} onChange={set('expiry')} /></Field>
-          <Field label="Заметки"><Input placeholder="Дополнительная информация" value={form.notes} onChange={set('notes')} /></Field>
+          <Field label={t('documents.titleLabel')}><Input placeholder={t('documents.titlePlaceholder')} value={form.title} onChange={set('title')} /></Field>
+          <Field label={t('documents.numberLabel')}><Input placeholder={t('documents.numberPlaceholder')} value={form.number} onChange={set('number')} /></Field>
+          <Field label={t('documents.issueDateLabel')}><Input type="date" value={form.date} onChange={set('date')} /></Field>
+          <Field label={t('documents.expiryLabel')}><Input type="date" value={form.expiry} onChange={set('expiry')} /></Field>
+          <Field label={t('documents.notesLabel')}><Input placeholder={t('documents.notesPlaceholder')} value={form.notes} onChange={set('notes')} /></Field>
         </FormSheet>
       )}
     </>

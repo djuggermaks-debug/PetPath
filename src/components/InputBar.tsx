@@ -4,6 +4,8 @@ import { devLogger } from '../dev/logger';
 import { generateTestPhrase } from '../dev/generator';
 import type { Pet } from '../types';
 import { geminiRequest } from '../ai/config';
+import { useTranslation } from 'react-i18next';
+import { appLang } from '../i18n';
 
 interface InputBarProps {
   petId: string;
@@ -17,11 +19,14 @@ interface InputBarProps {
 }
 
 async function transcribeAudio(base64: string, mimeType: string): Promise<string> {
+  const prompt = appLang === 'ru'
+    ? 'Транскрибируй этот аудиофрагмент на русском языке. Верни только текст без пояснений.'
+    : 'Transcribe this audio in English. Return only the text, no explanations.';
   const res = await geminiRequest({
     contents: [{
       parts: [
         { inlineData: { mimeType, data: base64 } },
-        { text: 'Транскрибируй этот аудиофрагмент на русском языке. Верни только текст без пояснений.' },
+        { text: prompt },
       ],
     }],
   });
@@ -30,6 +35,7 @@ async function transcribeAudio(base64: string, mimeType: string): Promise<string
 }
 
 export function InputBar({ activeModule, onSend, parsing, devMode, pet, prefillText, onPrefillConsumed }: InputBarProps) {
+  const { t } = useTranslation();
   const [text, setText] = useState('');
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
@@ -65,7 +71,7 @@ export function InputBar({ activeModule, onSend, parsing, devMode, pet, prefillT
   const handleSend = async () => {
     if ((!text.trim() && !image) || parsing) return;
     const msg = text.trim();
-    devLogger.log('parse', 'Пользователь отправил', { text: msg, activeModule, hasImage: !!image });
+    devLogger.log('parse', 'User sent message', { text: msg, activeModule, hasImage: !!image });
     setText('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
     const img = image ?? undefined;
@@ -111,7 +117,7 @@ export function InputBar({ activeModule, onSend, parsing, devMode, pet, prefillT
             setTimeout(resizeTextarea, 0);
           }
         } catch (e) {
-          devLogger.log('error', 'Ошибка транскрипции', { error: String(e) });
+          devLogger.log('error', 'Transcription error', { error: String(e) });
         } finally {
           setTranscribing(false);
         }
@@ -121,7 +127,7 @@ export function InputBar({ activeModule, onSend, parsing, devMode, pet, prefillT
       recorder.start();
       setRecording(true);
     } catch (e) {
-      devLogger.log('error', 'Нет доступа к микрофону', { error: String(e) });
+      devLogger.log('error', 'Microphone access denied', { error: String(e) });
     }
   };
 
@@ -167,7 +173,7 @@ export function InputBar({ activeModule, onSend, parsing, devMode, pet, prefillT
   };
 
   const canSend = (text.trim().length > 0 || !!image) && !parsing;
-  const placeholder = activeModule ? 'Запись в раздел...' : 'Напишите что угодно о питомце...';
+  const placeholder = activeModule ? t('inputBar.placeholderModule') : t('inputBar.placeholderGeneral');
 
   return (
     <div className="input-bar">
@@ -179,13 +185,13 @@ export function InputBar({ activeModule, onSend, parsing, devMode, pet, prefillT
           type="button"
         >
           {generating ? <Loader size={13} className="spin" /> : <Zap size={13} />}
-          {generating ? 'Генерация...' : '⚡ Сгенерировать'}
+          {generating ? t('inputBar.generating') : t('inputBar.generate')}
         </button>
       )}
 
       {image && (
         <div className="image-preview-wrap">
-          <img src={image.preview} alt="фото" className="image-preview" />
+          <img src={image.preview} alt="photo" className="image-preview" />
           <button className="image-preview-remove" onClick={() => setImage(null)} type="button">
             <X size={12} />
           </button>
@@ -232,12 +238,12 @@ export function InputBar({ activeModule, onSend, parsing, devMode, pet, prefillT
 
       {recording && (
         <div className="recording-indicator font-typewriter">
-          <span className="recording-dot" />Говорите...
+          <span className="recording-dot" />{t('inputBar.recording')}
         </div>
       )}
       {transcribing && (
         <div className="recording-indicator font-typewriter">
-          <span className="recording-dot" style={{ background: '#3498db' }} />Распознаю речь...
+          <span className="recording-dot" style={{ background: '#3498db' }} />{t('inputBar.transcribing')}
         </div>
       )}
     </div>

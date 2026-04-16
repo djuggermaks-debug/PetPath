@@ -5,17 +5,15 @@ import { loadModuleData, saveModuleData } from '../../storage';
 import { EmptyState } from '../../components/ModuleShared';
 import { FormSheet, Field, Input, Select } from '../../components/FormSheet';
 import { formatDate } from '../../components/ModuleShared';
+import { useTranslation } from 'react-i18next';
 
 const empty = (): Omit<MediaEntry, 'id'> => ({
   date: new Date().toISOString().slice(0, 10),
   type: 'photo', url: '', caption: '', category: 'regular',
 });
 
-const categoryLabel: Record<string, string> = {
-  regular: 'Обычное', vet: 'У ветеринара', before_after: 'До/После',
-};
-
 export function MediaModule({ petId }: { petId: string }) {
+  const { t } = useTranslation();
   const [entries, setEntries] = useState<MediaEntry[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(empty());
@@ -75,13 +73,19 @@ export function MediaModule({ petId }: { petId: string }) {
     await saveModuleData(petId, 'media', updated);
   };
 
+  const categoryLabel: Record<string, string> = {
+    regular: t('media.catRegular'),
+    vet: t('media.catVet'),
+    before_after: t('media.catBeforeAfter'),
+  };
+
   return (
     <>
       <button className="module-add-btn" onClick={() => setShowForm(true)}>
-        <Plus size={14} /> Добавить фото / видео
+        <Plus size={14} /> {t('media.addBtn')}
       </button>
 
-      {entries.length === 0 ? <EmptyState label="Медиабанк" /> : (
+      {entries.length === 0 ? <EmptyState label={t('modules.media.label')} /> : (
         <div className="media-grid">
           {entries.map(e => (
             <div key={e.id} className="media-item">
@@ -106,23 +110,23 @@ export function MediaModule({ petId }: { petId: string }) {
       )}
 
       {showForm && (
-        <FormSheet title={editingId ? 'Редактировать медиа' : 'Добавить медиа'} onClose={handleClose} onSave={handleSave} saving={saving}>
+        <FormSheet title={editingId ? t('media.formTitleEdit') : t('media.formTitleNew')} onClose={handleClose} onSave={handleSave} saving={saving}>
           <div className="media-upload-area" onClick={() => fileRef.current?.click()}>
             {preview
               ? <img src={preview} alt="preview" className="media-upload-preview" />
-              : <div className="media-upload-placeholder"><Plus size={24} /><span>Выбрать фото или видео</span></div>
+              : <div className="media-upload-placeholder"><Plus size={24} /><span>{t('media.uploadPlaceholder')}</span></div>
             }
             <input ref={fileRef} type="file" accept="image/*,video/*" onChange={handleFile} hidden />
           </div>
-          <Field label="Подпись"><Input placeholder="Описание фото" value={form.caption} onChange={set('caption')} /></Field>
-          <Field label="Категория">
+          <Field label={t('media.captionLabel')}><Input placeholder={t('media.captionPlaceholder')} value={form.caption} onChange={set('caption')} /></Field>
+          <Field label={t('media.categoryLabel')}>
             <Select value={form.category} onChange={set('category')}>
-              <option value="regular">Обычное фото</option>
-              <option value="vet">У ветеринара</option>
-              <option value="before_after">До/После лечения</option>
+              <option value="regular">{t('media.catRegularFull')}</option>
+              <option value="vet">{t('media.catVetFull')}</option>
+              <option value="before_after">{t('media.catBeforeAfterFull')}</option>
             </Select>
           </Field>
-          <Field label="Дата"><Input type="date" value={form.date} onChange={set('date')} /></Field>
+          <Field label={t('media.dateLabel')}><Input type="date" value={form.date} onChange={set('date')} /></Field>
         </FormSheet>
       )}
     </>

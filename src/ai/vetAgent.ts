@@ -1,5 +1,6 @@
 import { geminiRequest } from './config';
 import type { Pet } from '../types';
+import { appLang } from '../i18n';
 
 export interface VetAdvice {
   observations: string[];
@@ -8,7 +9,7 @@ export interface VetAdvice {
   updates: { module: string; field: string; value: unknown }[];
 }
 
-const SYSTEM_PROMPT = `Ты — опытный ветеринарный консультант. Анализируешь историю питомца и даёшь советы владельцу.
+const SYSTEM_PROMPT_RU = `Ты — опытный ветеринарный консультант. Анализируешь историю питомца и даёшь советы владельцу.
 
 Твои задачи:
 1. Найти паттерны (повторяющиеся симптомы, закономерности)
@@ -27,18 +28,35 @@ const SYSTEM_PROMPT = `Ты — опытный ветеринарный конс
   "updates": [{ "module": "habits", "field": "activityLevel", "value": "low" }]
 }`;
 
+const SYSTEM_PROMPT_EN = `You are an experienced veterinary consultant. You analyse a pet's history and give advice to the owner.
+
+Your tasks:
+1. Find patterns (recurring symptoms, trends)
+2. Identify potential issues
+3. Give specific recommendations
+4. Suggest data updates if you notice inconsistencies
+
+Reply in English. Tone — friendly, clear, no medical jargon.
+Reply ONLY with valid JSON, no markdown.
+
+Response format:
+{
+  "observations": ["observation 1", "observation 2"],
+  "recommendations": ["recommendation 1", "recommendation 2"],
+  "alerts": ["urgent warning if any"],
+  "updates": [{ "module": "habits", "field": "activityLevel", "value": "low" }]
+}`;
+
 const MAX_PHOTOS = 5;
 
 export async function analyzeWithVetAgent(pet: Pet, allData: Record<string, unknown[]>): Promise<VetAdvice> {
-  const petInfo = `
-Питомец: ${pet.name}
-Вид: ${pet.species}
-Порода: ${pet.breed || 'не указана'}
-Возраст: ${pet.birthDate ? Math.floor((Date.now() - new Date(pet.birthDate).getTime()) / 31536000000) + ' лет' : 'не указан'}
-Вес: ${pet.weight > 0 ? pet.weight + ' кг' : 'не указан'}
-`;
+  const isRu = appLang === 'ru';
+  const systemPrompt = isRu ? SYSTEM_PROMPT_RU : SYSTEM_PROMPT_EN;
 
-  // Collect last N photos from health and allergies, strip _photo from text
+  const petInfo = isRu
+    ? `\nПитомец: ${pet.name}\nВид: ${pet.species}\nПорода: ${pet.breed || 'не указана'}\nВозраст: ${pet.birthDate ? Math.floor((Date.now() - new Date(pet.birthDate).getTime()) / 31536000000) + ' лет' : 'не указан'}\nВес: ${pet.weight > 0 ? pet.weight + ' кг' : 'не указан'}\n`
+    : `\nPet: ${pet.name}\nSpecies: ${pet.species}\nBreed: ${pet.breed || 'unknown'}\nAge: ${pet.birthDate ? Math.floor((Date.now() - new Date(pet.birthDate).getTime()) / 31536000000) + ' years' : 'unknown'}\nWeight: ${pet.weight > 0 ? pet.weight + ' kg' : 'unknown'}\n`;
+
   const photos: { mimeType: string; base64: string; label: string }[] = [];
   const dataForText: Record<string, unknown[]> = {};
 
@@ -63,21 +81,24 @@ export async function analyzeWithVetAgent(pet: Pet, allData: Record<string, unkn
     .join('\n');
 
   const photoNote = photos.length > 0
-    ? `\n\nК анализу прилагаются ${photos.length} фото из записей (здоровье/аллергии). Учитывай их при анализе.`
+    ? isRu
+      ? `\n\nК анализу прилагаются ${photos.length} фото из записей (здоровье/аллергии). Учитывай их при анализе.`
+      : `\n\n${photos.length} photo(s) from records (health/allergies) are attached. Consider them in your analysis.`
     : '';
 
-  const prompt = `${petInfo}\n\nИСТОРИЯ ПИТОМЦА:${historyText || '\nДанных пока нет.'}${photoNote}
+  const noDataText = isRu ? '\nДанных пока нет.' : '\nNo data yet.';
+  const analyseText = isRu ? 'Проанализируй и дай советы.' : 'Analyse and give advice.';
+  const historyLabel = isRu ? 'ИСТОРИЯ ПИТОМЦА:' : 'PET HISTORY:';
 
-Проанализируй и дай советы.`;
+  const prompt = `${petInfo}\n\n${historyLabel}${historyText || noDataText}${photoNote}\n\n${analyseText}`;
 
-  // Build parts: text first, then images
   const parts: unknown[] = [{ text: prompt }];
   for (const photo of photos) {
     parts.push({ inline_data: { mime_type: photo.mimeType, data: photo.base64 } });
   }
 
   const response = await geminiRequest({
-    system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    system_instruction: { parts: [{ text: systemPrompt }] },
     contents: [{ parts }],
     generationConfig: { temperature: 0.3, responseMimeType: 'application/json' },
   });

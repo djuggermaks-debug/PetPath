@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 
 const DEV_MODE = new URLSearchParams(window.location.search).has('dev');
 
-const PHOTO_MODULES = new Set(['health', 'allergies', 'items', 'expenses']);
+const PHOTO_MODULES = new Set(['health', 'allergies', 'items', 'expenses', 'nutrition']);
 
 async function compressImage(base64: string, mimeType: string): Promise<string> {
   return new Promise((resolve) => {

@@ -4,6 +4,7 @@ import type { VaccineEntry } from '../../types/modules';
 import { loadModuleData, saveModuleData } from '../../storage';
 import { EmptyState, RecordCard } from '../../components/ModuleShared';
 import { FormSheet, Field, Input, Toggle } from '../../components/FormSheet';
+import { useTranslation } from 'react-i18next';
 
 const empty = (): Omit<VaccineEntry, 'id'> => ({
   name: '', date: new Date().toISOString().slice(0, 10),
@@ -11,6 +12,7 @@ const empty = (): Omit<VaccineEntry, 'id'> => ({
 });
 
 export function VaccinesModule({ petId }: { petId: string }) {
+  const { t } = useTranslation();
   const [entries, setEntries] = useState<VaccineEntry[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(empty());
@@ -52,19 +54,19 @@ export function VaccinesModule({ petId }: { petId: string }) {
   return (
     <>
       <button className="module-add-btn" onClick={() => setShowForm(true)}>
-        <Plus size={14} /> Добавить прививку
+        <Plus size={14} /> {t('vaccines.addBtn')}
       </button>
 
-      {entries.length === 0 ? <EmptyState label="Прививки" /> : (
+      {entries.length === 0 ? <EmptyState label={t('modules.vaccines.label')} /> : (
         <div className="module-list">
           {entries.map(e => (
             <RecordCard key={e.id} date={e.date} title={e.name}
               fields={[
-                { label: 'Препарат', value: e.drug },
-                { label: 'Производитель', value: e.manufacturer },
-                { label: 'Врач', value: e.vet },
-                { label: 'Клиника', value: e.clinic },
-                { label: 'Следующая', value: e.nextDate },
+                { label: t('vaccines.fieldDrug'), value: e.drug },
+                { label: t('vaccines.fieldManufacturer'), value: e.manufacturer },
+                { label: t('vaccines.fieldDoctor'), value: e.vet },
+                { label: t('vaccines.fieldClinic'), value: e.clinic },
+                { label: t('vaccines.fieldNext'), value: e.nextDate },
               ]}
               notify={e.notify}
               onEdit={() => handleEdit(e)}
@@ -75,15 +77,15 @@ export function VaccinesModule({ petId }: { petId: string }) {
       )}
 
       {showForm && (
-        <FormSheet title={editingId ? 'Редактировать прививку' : 'Добавить прививку'} onClose={handleClose} onSave={handleSave}>
-          <Field label="Название прививки *"><Input placeholder="Например: Нобивак" value={form.name} onChange={set('name')} /></Field>
-          <Field label="Дата вакцинации"><Input type="date" value={form.date} onChange={set('date')} /></Field>
-          <Field label="Препарат"><Input placeholder="Коммерческое название" value={form.drug} onChange={set('drug')} /></Field>
-          <Field label="Производитель"><Input placeholder="Компания" value={form.manufacturer} onChange={set('manufacturer')} /></Field>
-          <Field label="Врач"><Input placeholder="ФИО врача" value={form.vet} onChange={set('vet')} /></Field>
-          <Field label="Клиника"><Input placeholder="Название клиники" value={form.clinic} onChange={set('clinic')} /></Field>
-          <Field label="Дата следующей прививки"><Input type="date" value={form.nextDate} onChange={set('nextDate')} /></Field>
-          <Toggle label="Уведомление" checked={form.notify}
+        <FormSheet title={editingId ? t('vaccines.formTitleEdit') : t('vaccines.formTitleNew')} onClose={handleClose} onSave={handleSave}>
+          <Field label={t('vaccines.nameLabel')}><Input placeholder={t('vaccines.namePlaceholder')} value={form.name} onChange={set('name')} /></Field>
+          <Field label={t('vaccines.dateLabel')}><Input type="date" value={form.date} onChange={set('date')} /></Field>
+          <Field label={t('vaccines.drugLabel')}><Input placeholder={t('vaccines.drugPlaceholder')} value={form.drug} onChange={set('drug')} /></Field>
+          <Field label={t('vaccines.manufacturerLabel')}><Input placeholder={t('vaccines.manufacturerPlaceholder')} value={form.manufacturer} onChange={set('manufacturer')} /></Field>
+          <Field label={t('vaccines.doctorLabel')}><Input placeholder={t('vaccines.doctorPlaceholder')} value={form.vet} onChange={set('vet')} /></Field>
+          <Field label={t('vaccines.clinicLabel')}><Input placeholder={t('vaccines.clinicPlaceholder')} value={form.clinic} onChange={set('clinic')} /></Field>
+          <Field label={t('vaccines.nextDateLabel')}><Input type="date" value={form.nextDate} onChange={set('nextDate')} /></Field>
+          <Toggle label={t('vaccines.notifyLabel')} checked={form.notify}
             onChange={v => setForm(p => ({ ...p, notify: v }))} />
         </FormSheet>
       )}

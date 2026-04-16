@@ -8,11 +8,13 @@ import { WelcomeScreen } from './components/WelcomeScreen';
 import type { PetProfileDraft } from './ai/breedDetector';
 import { loadAllPets, savePet } from './storage';
 import { useUserStatus } from './hooks/useUserStatus';
+import { useTranslation } from 'react-i18next';
 
 import './styles/global.css';
 import './styles/app.css';
 
 function App() {
+  const { t } = useTranslation();
   const [pets, setPets] = useState<Pet[]>([]);
   const [activePet, setActivePet] = useState<Pet | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -72,7 +74,7 @@ function App() {
   if (loading || userStatus.status === 'loading') {
     return (
       <div className="loading-screen">
-        <PawLoader text="Загрузка дела..." />
+        <PawLoader text={t('folder.appLoading')} />
       </div>
     );
   }

@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom';
 import { useState } from 'react';
 import { X, Loader } from 'lucide-react';
 import { getUserId } from '../storage';
+import { useTranslation } from 'react-i18next';
 
 const SUPABASE_URL = 'https://qkraaygwvnwzotyqdnlx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gHQhjhxovzymM7ELtSyxrg_Lq3XQduP';
@@ -12,22 +13,23 @@ interface WelcomeScreenProps {
   isFirstLaunch: boolean;
 }
 
-const FEATURES = [
-  { icon: '🎙️', title: 'Говори или пиши', desc: 'ИИ сам понимает и раскладывает по разделам' },
-  { icon: '📸', title: 'Фото лекарств и корма', desc: 'Сфотографируй упаковку — название и доза определятся автоматически' },
-  { icon: '🩺', title: 'Анализ от ветеринарного ИИ', desc: 'Смотрит всю историю и даёт рекомендации' },
-  { icon: '📋', title: 'Показать врачу', desc: 'Одна кнопка — и вся карта питомца готова к отправке' },
-  { icon: '💉', title: 'Прививки, лекарства, аллергии', desc: 'Всё в одном месте, всегда под рукой' },
-];
-
 export function WelcomeScreen({ onStart, onClose, isFirstLaunch }: WelcomeScreenProps) {
+  const { t } = useTranslation();
   const [buying, setBuying] = useState(false);
   const [buyError, setBuyError] = useState('');
+
+  const FEATURES = [
+    { icon: '🎙️', title: t('welcome.features.voice.title'), desc: t('welcome.features.voice.desc') },
+    { icon: '📸', title: t('welcome.features.photo.title'), desc: t('welcome.features.photo.desc') },
+    { icon: '🩺', title: t('welcome.features.vet.title'), desc: t('welcome.features.vet.desc') },
+    { icon: '📋', title: t('welcome.features.card.title'), desc: t('welcome.features.card.desc') },
+    { icon: '💉', title: t('welcome.features.records.title'), desc: t('welcome.features.records.desc') },
+  ];
 
   const handleBuy = async () => {
     const tg = (window as any).Telegram?.WebApp;
     if (!tg) {
-      setBuyError('Откройте приложение в Telegram');
+      setBuyError(t('welcome.openInTg'));
       return;
     }
     setBuying(true);
@@ -43,12 +45,12 @@ export function WelcomeScreen({ onStart, onClose, isFirstLaunch }: WelcomeScreen
       if (data.error) throw new Error(data.error);
       tg.openInvoice(data.link, (status: string) => {
         if (status === 'paid') {
-          tg.showAlert('✅ Оплата прошла! Premium активирован на 30 дней.');
+          tg.showAlert(t('welcome.paymentSuccess'));
           onClose?.();
         }
       });
     } catch (e) {
-      setBuyError('Ошибка: ' + String(e));
+      setBuyError('Error: ' + String(e));
     } finally {
       setBuying(false);
     }
@@ -65,8 +67,8 @@ export function WelcomeScreen({ onStart, onClose, isFirstLaunch }: WelcomeScreen
 
         <div className="welcome-header">
           <div className="welcome-logo font-typewriter">🐾 PetPath</div>
-          <h2 className="welcome-title">Медкарта вашего питомца</h2>
-          <p className="welcome-subtitle">Всё о здоровье питомца — в одном месте</p>
+          <h2 className="welcome-title">{t('welcome.title')}</h2>
+          <p className="welcome-subtitle">{t('welcome.subtitle')}</p>
         </div>
 
         <div className="welcome-features">
@@ -82,8 +84,8 @@ export function WelcomeScreen({ onStart, onClose, isFirstLaunch }: WelcomeScreen
         </div>
 
         <div className="welcome-trial">
-          <span className="welcome-trial-badge font-typewriter">7 ДНЕЙ БЕСПЛАТНО</span>
-          <p className="welcome-trial-text">Все функции без ограничений — попробуй прямо сейчас</p>
+          <span className="welcome-trial-badge font-typewriter">{t('welcome.trialBadge')}</span>
+          <p className="welcome-trial-text">{t('welcome.trialText')}</p>
         </div>
 
         {!isFirstLaunch && (
@@ -91,21 +93,19 @@ export function WelcomeScreen({ onStart, onClose, isFirstLaunch }: WelcomeScreen
             <div className="welcome-price-block">
               <span className="welcome-price-old">600 ⭐</span>
               <span className="welcome-price-new">300 ⭐</span>
-              <span className="welcome-price-badge font-typewriter">-50% только сейчас</span>
+              <span className="welcome-price-badge font-typewriter">{t('welcome.discountBadge')}</span>
             </div>
-            <p className="welcome-price-hint">
-              ⭐ Звёзды покупаются в Telegram — Settings → Telegram Stars
-            </p>
+            <p className="welcome-price-hint">{t('welcome.starsHint')}</p>
 
             <button className="welcome-buy-btn font-typewriter" onClick={handleBuy} disabled={buying}>
-              {buying ? <><Loader size={14} className="spin" /> Загрузка...</> : '⭐ Купить Premium — 300 Stars'}
+              {buying ? <><Loader size={14} className="spin" /> {t('common.loading')}</> : t('welcome.buyBtn')}
             </button>
             {buyError && <p className="welcome-buy-error">{buyError}</p>}
           </div>
         )}
 
         <button className="welcome-start-btn font-typewriter" onClick={onStart}>
-          {isFirstLaunch ? 'Начать бесплатно →' : 'Закрыть'}
+          {isFirstLaunch ? t('welcome.startFree') : t('welcome.closeBtn')}
         </button>
       </div>
     </div>,

@@ -4,6 +4,7 @@ import type { NutritionEntry } from '../../types/modules';
 import { loadModuleData, saveModuleData } from '../../storage';
 import { EmptyState, RecordCard } from '../../components/ModuleShared';
 import { FormSheet, Field, Input, Select } from '../../components/FormSheet';
+import { useTranslation } from 'react-i18next';
 
 const empty = (): Omit<NutritionEntry, 'id'> => ({
   date: new Date().toISOString().slice(0, 10),
@@ -11,9 +12,8 @@ const empty = (): Omit<NutritionEntry, 'id'> => ({
   frequency: '', restrictions: '', favorites: '', dislikes: '', reaction: '',
 });
 
-const feedTypeLabel: Record<string, string> = { dry: 'Сухой', wet: 'Влажный', natural: 'Натуральный', mixed: 'Смешанный' };
-
 export function NutritionModule({ petId }: { petId: string }) {
+  const { t } = useTranslation();
   const [entries, setEntries] = useState<NutritionEntry[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(empty());
@@ -51,25 +51,32 @@ export function NutritionModule({ petId }: { petId: string }) {
     await saveModuleData(petId, 'nutrition', updated);
   };
 
+  const feedTypeLabel: Record<string, string> = {
+    dry: t('nutrition.feedTypeDry'),
+    wet: t('nutrition.feedTypeWet'),
+    natural: t('nutrition.feedTypeNatural'),
+    mixed: t('nutrition.feedTypeMixed'),
+  };
+
   return (
     <>
       <button className="module-add-btn" onClick={() => setShowForm(true)}>
-        <Plus size={14} /> Добавить запись
+        <Plus size={14} /> {t('nutrition.addBtn')}
       </button>
 
-      {entries.length === 0 ? <EmptyState label="Питание" /> : (
+      {entries.length === 0 ? <EmptyState label={t('modules.nutrition.label')} /> : (
         <div className="module-list">
           {entries.map(e => (
             <RecordCard key={e.id} date={e.date}
               badge={feedTypeLabel[e.feedType]} badgeColor="#27ae60"
               title={e.brand || feedTypeLabel[e.feedType]}
               fields={[
-                { label: 'Порция', value: e.portionSize },
-                { label: 'Частота', value: e.frequency },
-                { label: 'Ограничения', value: e.restrictions },
-                { label: 'Любит', value: e.favorites },
-                { label: 'Не ест', value: e.dislikes },
-                { label: 'Реакция', value: e.reaction },
+                { label: t('nutrition.fieldPortion'), value: e.portionSize },
+                { label: t('nutrition.fieldFrequency'), value: e.frequency },
+                { label: t('nutrition.fieldRestrictions'), value: e.restrictions },
+                { label: t('nutrition.fieldFavorites'), value: e.favorites },
+                { label: t('nutrition.fieldDislikes'), value: e.dislikes },
+                { label: t('nutrition.fieldReaction'), value: e.reaction },
               ]}
               onEdit={() => handleEdit(e)}
               onDelete={() => handleDelete(e.id)}
@@ -79,22 +86,22 @@ export function NutritionModule({ petId }: { petId: string }) {
       )}
 
       {showForm && (
-        <FormSheet title={editingId ? 'Редактировать питание' : 'Добавить питание'} onClose={handleClose} onSave={handleSave}>
-          <Field label="Тип корма">
+        <FormSheet title={editingId ? t('nutrition.formTitleEdit') : t('nutrition.formTitleNew')} onClose={handleClose} onSave={handleSave}>
+          <Field label={t('nutrition.feedTypeLabel')}>
             <Select value={form.feedType} onChange={set('feedType')}>
-              <option value="dry">Сухой</option>
-              <option value="wet">Влажный</option>
-              <option value="natural">Натуральный</option>
-              <option value="mixed">Смешанный</option>
+              <option value="dry">{t('nutrition.feedTypeDry')}</option>
+              <option value="wet">{t('nutrition.feedTypeWet')}</option>
+              <option value="natural">{t('nutrition.feedTypeNatural')}</option>
+              <option value="mixed">{t('nutrition.feedTypeMixed')}</option>
             </Select>
           </Field>
-          <Field label="Бренд / название"><Input placeholder="Royal Canin, Brit, др." value={form.brand} onChange={set('brand')} /></Field>
-          <Field label="Размер порции"><Input placeholder="100г / 2 столовых ложки" value={form.portionSize} onChange={set('portionSize')} /></Field>
-          <Field label="Частота кормления"><Input placeholder="2 раза в день" value={form.frequency} onChange={set('frequency')} /></Field>
-          <Field label="Пищевые ограничения / диета"><Input placeholder="Без курицы, гипоаллергенная..." value={form.restrictions} onChange={set('restrictions')} /></Field>
-          <Field label="Любимые продукты"><Input placeholder="Что ест с удовольствием" value={form.favorites} onChange={set('favorites')} /></Field>
-          <Field label="Нелюбимые продукты"><Input placeholder="От чего отказывается" value={form.dislikes} onChange={set('dislikes')} /></Field>
-          <Field label="Реакция на корм"><Input placeholder="Хорошо переносит / аллергия / расстройство" value={form.reaction} onChange={set('reaction')} /></Field>
+          <Field label={t('nutrition.brandLabel')}><Input placeholder="Royal Canin, Brit..." value={form.brand} onChange={set('brand')} /></Field>
+          <Field label={t('nutrition.portionLabel')}><Input placeholder={t('nutrition.portionPlaceholder')} value={form.portionSize} onChange={set('portionSize')} /></Field>
+          <Field label={t('nutrition.frequencyLabel')}><Input placeholder={t('nutrition.frequencyPlaceholder')} value={form.frequency} onChange={set('frequency')} /></Field>
+          <Field label={t('nutrition.restrictionsLabel')}><Input placeholder={t('nutrition.restrictionsPlaceholder')} value={form.restrictions} onChange={set('restrictions')} /></Field>
+          <Field label={t('nutrition.favoritesLabel')}><Input placeholder={t('nutrition.favoritesPlaceholder')} value={form.favorites} onChange={set('favorites')} /></Field>
+          <Field label={t('nutrition.dislikesLabel')}><Input placeholder={t('nutrition.dislikesPlaceholder')} value={form.dislikes} onChange={set('dislikes')} /></Field>
+          <Field label={t('nutrition.reactionLabel')}><Input placeholder={t('nutrition.reactionPlaceholder')} value={form.reaction} onChange={set('reaction')} /></Field>
         </FormSheet>
       )}
     </>

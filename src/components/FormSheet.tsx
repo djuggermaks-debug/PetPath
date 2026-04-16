@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { PawLoader } from './PawLoader';
+import { useTranslation } from 'react-i18next';
 
 interface FormSheetProps {
   title: string;
@@ -11,7 +12,10 @@ interface FormSheetProps {
   saving?: boolean;
 }
 
-export function FormSheet({ title, onClose, onSave, children, saveLabel = 'Сохранить', saving = false }: FormSheetProps) {
+export function FormSheet({ title, onClose, onSave, children, saveLabel, saving = false }: FormSheetProps) {
+  const { t } = useTranslation();
+  const label = saveLabel ?? t('common.save');
+
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
@@ -26,15 +30,14 @@ export function FormSheet({ title, onClose, onSave, children, saveLabel = 'Со�
         </div>
         <div className="sheet-body scrollable">{children}</div>
         <div className="sheet-footer">
-          <button className="sheet-save-btn font-typewriter" onClick={onSave} disabled={saving}>{saveLabel}</button>
+          <button className="sheet-save-btn font-typewriter" onClick={onSave} disabled={saving}>{label}</button>
         </div>
-        {saving && <PawLoader overlay text="Сохранение..." />}
+        {saving && <PawLoader overlay text={t('common.saving')} />}
       </div>
     </div>
   );
 }
 
-// Shared form field components
 export function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="field-group">

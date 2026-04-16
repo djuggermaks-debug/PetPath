@@ -8,6 +8,7 @@ import { DocumentsModule } from './documents';
 import { MediaModule } from './media';
 import { ItemsModule } from './items';
 import { ExpensesModule } from './expenses';
+import i18n from '../i18n';
 
 interface ModuleEntry {
   id: string;
@@ -19,15 +20,17 @@ interface ModuleEntry {
   component: React.ComponentType<{ petId: string }>;
 }
 
+const t = (key: string) => i18n.t(key);
+
 export const MODULE_REGISTRY: ModuleEntry[] = [
-  { id: 'health',      label: 'Здоровье',   labelShort: 'Здоров.',  icon: '🩺', color: '#e74c3c', isPremium: false, component: HealthModule },
-  { id: 'medications', label: 'Лекарства',  labelShort: 'Лекарст.', icon: '💊', color: '#e67e22', isPremium: false, component: MedicationsModule },
-  { id: 'vaccines',    label: 'Прививки',   labelShort: 'Привив.',  icon: '💉', color: '#d4ac0d', isPremium: false, component: VaccinesModule },
-  { id: 'allergies',   label: 'Аллергии',   labelShort: 'Аллерг.',  icon: '⚠️', color: '#9b59b6', isPremium: false, component: AllergiesModule },
-  { id: 'nutrition',   label: 'Питание',    labelShort: 'Питание',  icon: '🥣', color: '#27ae60', isPremium: true,  component: NutritionModule },
-  { id: 'habits',      label: 'Привычки',   labelShort: 'Привыч.',  icon: '🐾', color: '#3498db', isPremium: true,  component: HabitsModule },
-  { id: 'documents',   label: 'Документы',  labelShort: 'Докум.',   icon: '📄', color: '#1abc9c', isPremium: true,  component: DocumentsModule },
-  { id: 'media',       label: 'Медиабанк',  labelShort: 'Медиа',    icon: '📸', color: '#e91e63', isPremium: true,  component: MediaModule },
-  { id: 'items',       label: 'Вещи',       labelShort: 'Вещи',     icon: '🧸', color: '#e67e22', isPremium: true,  component: ItemsModule },
-  { id: 'expenses',    label: 'Расходы',    labelShort: 'Расходы',  icon: '💰', color: '#f39c12', isPremium: true,  component: ExpensesModule },
+  { id: 'health',      get label() { return t('modules.health.label'); },      get labelShort() { return t('modules.health.short'); },      icon: '🩺', color: '#e74c3c', isPremium: false, component: HealthModule },
+  { id: 'medications', get label() { return t('modules.medications.label'); },  get labelShort() { return t('modules.medications.short'); },  icon: '💊', color: '#e67e22', isPremium: false, component: MedicationsModule },
+  { id: 'vaccines',    get label() { return t('modules.vaccines.label'); },     get labelShort() { return t('modules.vaccines.short'); },     icon: '💉', color: '#d4ac0d', isPremium: false, component: VaccinesModule },
+  { id: 'allergies',   get label() { return t('modules.allergies.label'); },    get labelShort() { return t('modules.allergies.short'); },    icon: '⚠️', color: '#9b59b6', isPremium: false, component: AllergiesModule },
+  { id: 'nutrition',   get label() { return t('modules.nutrition.label'); },    get labelShort() { return t('modules.nutrition.short'); },    icon: '🥣', color: '#27ae60', isPremium: true,  component: NutritionModule },
+  { id: 'habits',      get label() { return t('modules.habits.label'); },       get labelShort() { return t('modules.habits.short'); },       icon: '🐾', color: '#3498db', isPremium: true,  component: HabitsModule },
+  { id: 'documents',   get label() { return t('modules.documents.label'); },    get labelShort() { return t('modules.documents.short'); },    icon: '📄', color: '#1abc9c', isPremium: true,  component: DocumentsModule },
+  { id: 'media',       get label() { return t('modules.media.label'); },        get labelShort() { return t('modules.media.short'); },        icon: '📸', color: '#e91e63', isPremium: true,  component: MediaModule },
+  { id: 'items',       get label() { return t('modules.items.label'); },        get labelShort() { return t('modules.items.short'); },        icon: '🧸', color: '#e67e22', isPremium: true,  component: ItemsModule },
+  { id: 'expenses',    get label() { return t('modules.expenses.label'); },     get labelShort() { return t('modules.expenses.short'); },     icon: '💰', color: '#f39c12', isPremium: true,  component: ExpensesModule },
 ];

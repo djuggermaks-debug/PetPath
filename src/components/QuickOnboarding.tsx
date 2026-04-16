@@ -2,17 +2,22 @@ import { useState, useRef } from 'react';
 import { Mic, MicOff, Send, Loader } from 'lucide-react';
 import { parsePetProfile, type PetProfileDraft } from '../ai/breedDetector';
 import { geminiRequest } from '../ai/config';
+import { useTranslation } from 'react-i18next';
+import { appLang } from '../i18n';
 
 interface QuickOnboardingProps {
   onComplete: (draft: PetProfileDraft) => void;
 }
 
-async function transcribeAudio(base64: string, mimeType: string): Promise<string> {
+async function transcribeAudio(base64: string, mimeType: string, lang: string): Promise<string> {
+  const prompt = lang === 'ru'
+    ? 'Транскрибируй этот аудиофрагмент на русском языке. Верни только текст без пояснений.'
+    : 'Transcribe this audio in English. Return only the text, no explanations.';
   const res = await geminiRequest({
     contents: [{
       parts: [
         { inlineData: { mimeType, data: base64 } },
-        { text: 'Транскрибируй этот аудиофрагмент на русском языке. Верни только текст без пояснений.' },
+        { text: prompt },
       ],
     }],
   });
@@ -21,6 +26,7 @@ async function transcribeAudio(base64: string, mimeType: string): Promise<string
 }
 
 export function QuickOnboarding({ onComplete }: QuickOnboardingProps) {
+  const { t } = useTranslation();
   const [text, setText] = useState('');
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
@@ -52,7 +58,7 @@ export function QuickOnboarding({ onComplete }: QuickOnboardingProps) {
             reader.onload = () => resolve((reader.result as string).split(',')[1]);
             reader.readAsDataURL(blob);
           });
-          const transcript = await transcribeAudio(base64, recorder.mimeType.split(';')[0]);
+          const transcript = await transcribeAudio(base64, recorder.mimeType.split(';')[0], appLang);
           if (transcript) setText(transcript);
         } finally {
           setTranscribing(false);
@@ -62,7 +68,7 @@ export function QuickOnboarding({ onComplete }: QuickOnboardingProps) {
       recorder.start();
       setRecording(true);
     } catch {
-      // нет доступа к микрофону — просто игнорируем
+      // no mic access
     }
   };
 
@@ -96,14 +102,14 @@ export function QuickOnboarding({ onComplete }: QuickOnboardingProps) {
 
       <div className="onboarding-card">
         <p className="quick-onboarding-hint">
-          Имя, вид, пол, возраст, вес — одним предложением.<br />
-          Или нажми микрофон и просто скажи.
+          {t('quickOnboarding.hint')}<br />
+          {t('quickOnboarding.hintMic')}
         </p>
 
         <div className="quick-onboarding-examples">
-          <span>Например:</span>
-          <em>«Барсик, кот, 3 года, рыжий мейн-кун, 5 кг»</em>
-          <em>«Белла, собака-девочка, 2 года, 8 кг»</em>
+          <span>{t('quickOnboarding.examplesLabel')}</span>
+          <em>{t('quickOnboarding.example1')}</em>
+          <em>{t('quickOnboarding.example2')}</em>
         </div>
 
         <div className={`input-bar-inner ${recording ? 'input-bar-inner--recording' : ''}`} style={{ marginTop: '16px' }}>
@@ -124,7 +130,7 @@ export function QuickOnboarding({ onComplete }: QuickOnboardingProps) {
           <textarea
             ref={textareaRef}
             className="input-textarea"
-            placeholder="Напиши или продиктуй..."
+            placeholder={t('quickOnboarding.placeholder')}
             value={text}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
@@ -144,17 +150,17 @@ export function QuickOnboarding({ onComplete }: QuickOnboardingProps) {
 
         {recording && (
           <div className="recording-indicator font-typewriter">
-            <span className="recording-dot" />Говорите...
+            <span className="recording-dot" />{t('quickOnboarding.recording')}
           </div>
         )}
         {transcribing && (
           <div className="recording-indicator font-typewriter">
-            <span className="recording-dot" style={{ background: '#3498db' }} />Распознаю речь...
+            <span className="recording-dot" style={{ background: '#3498db' }} />{t('quickOnboarding.transcribing')}
           </div>
         )}
         {parsing && (
           <div className="recording-indicator font-typewriter">
-            <span className="recording-dot" style={{ background: '#27ae60' }} />Заполняю карточку...
+            <span className="recording-dot" style={{ background: '#27ae60' }} />{t('quickOnboarding.parsing')}
           </div>
         )}
       </div>

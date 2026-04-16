@@ -4,6 +4,7 @@ import type { AllergyEntry } from '../../types/modules';
 import { loadModuleData, saveModuleData } from '../../storage';
 import { EmptyState, RecordCard, severityLabel, severityColor } from '../../components/ModuleShared';
 import { FormSheet, Field, Input, Select, Toggle } from '../../components/FormSheet';
+import { useTranslation } from 'react-i18next';
 
 const empty = (): Omit<AllergyEntry, 'id'> => ({
   allergen: '', allergenType: 'food', reaction: '',
@@ -11,6 +12,7 @@ const empty = (): Omit<AllergyEntry, 'id'> => ({
 });
 
 export function AllergiesModule({ petId }: { petId: string }) {
+  const { t } = useTranslation();
   const [entries, setEntries] = useState<AllergyEntry[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(empty());
@@ -49,24 +51,29 @@ export function AllergiesModule({ petId }: { petId: string }) {
     await saveModuleData(petId, 'allergies', updated);
   };
 
-  const typeLabel: Record<string, string> = { food: 'Еда', plant: 'Растение', drug: 'Препарат', other: 'Другое' };
+  const typeLabel: Record<string, string> = {
+    food: t('allergies.typeFood'),
+    plant: t('allergies.typePlant'),
+    drug: t('allergies.typeDrug'),
+    other: t('allergies.typeOther'),
+  };
 
   return (
     <>
       <button className="module-add-btn" onClick={() => setShowForm(true)}>
-        <Plus size={14} /> Добавить аллергию
+        <Plus size={14} /> {t('allergies.addBtn')}
       </button>
 
-      {entries.length === 0 ? <EmptyState label="Аллергии" /> : (
+      {entries.length === 0 ? <EmptyState label={t('modules.allergies.label')} /> : (
         <div className="module-list">
           {entries.map(e => (
             <RecordCard key={e.id} date={e.firstDate}
-              badge={severityLabel(e.severity)} badgeColor={severityColor(e.severity)}
+              badge={severityLabel(e.severity, t)} badgeColor={severityColor(e.severity)}
               title={`${e.allergen} (${typeLabel[e.allergenType]})`}
               photo={e._photo}
               fields={[
-                { label: 'Реакция', value: e.reaction },
-                { label: 'Подтверждено врачом', value: e.confirmedByVet ? 'Да' : 'Нет' },
+                { label: t('allergies.fieldReaction'), value: e.reaction },
+                { label: t('allergies.fieldConfirmed'), value: e.confirmedByVet ? t('allergies.confirmedYes') : t('allergies.confirmedNo') },
               ]}
               onEdit={() => handleEdit(e)}
               onDelete={() => handleDelete(e.id)}
@@ -76,26 +83,26 @@ export function AllergiesModule({ petId }: { petId: string }) {
       )}
 
       {showForm && (
-        <FormSheet title={editingId ? 'Редактировать аллергию' : 'Добавить аллергию'} onClose={handleClose} onSave={handleSave}>
-          <Field label="Аллерген *"><Input placeholder="Например: курица, пыльца берёзы" value={form.allergen} onChange={set('allergen')} /></Field>
-          <Field label="Тип аллергена">
+        <FormSheet title={editingId ? t('allergies.formTitleEdit') : t('allergies.formTitleNew')} onClose={handleClose} onSave={handleSave}>
+          <Field label={t('allergies.allergenLabel')}><Input placeholder={t('allergies.allergenPlaceholder')} value={form.allergen} onChange={set('allergen')} /></Field>
+          <Field label={t('allergies.allergenTypeLabel')}>
             <Select value={form.allergenType} onChange={set('allergenType')}>
-              <option value="food">Еда</option>
-              <option value="plant">Растение</option>
-              <option value="drug">Препарат</option>
-              <option value="other">Другое</option>
+              <option value="food">{t('allergies.typeFood')}</option>
+              <option value="plant">{t('allergies.typePlant')}</option>
+              <option value="drug">{t('allergies.typeDrug')}</option>
+              <option value="other">{t('allergies.typeOther')}</option>
             </Select>
           </Field>
-          <Field label="Реакция"><Input placeholder="Как проявляется" value={form.reaction} onChange={set('reaction')} /></Field>
-          <Field label="Степень тяжести">
+          <Field label={t('allergies.reactionLabel')}><Input placeholder={t('allergies.reactionPlaceholder')} value={form.reaction} onChange={set('reaction')} /></Field>
+          <Field label={t('allergies.severityLabel')}>
             <Select value={form.severity} onChange={set('severity')}>
-              <option value="mild">Лёгкая</option>
-              <option value="moderate">Средняя</option>
-              <option value="severe">Тяжёлая</option>
+              <option value="mild">{t('severity.mild')}</option>
+              <option value="moderate">{t('severity.moderate')}</option>
+              <option value="severe">{t('severity.severe')}</option>
             </Select>
           </Field>
-          <Field label="Дата первого выявления"><Input type="date" value={form.firstDate} onChange={set('firstDate')} /></Field>
-          <Toggle label="Подтверждено ветеринаром" checked={form.confirmedByVet}
+          <Field label={t('allergies.firstDateLabel')}><Input type="date" value={form.firstDate} onChange={set('firstDate')} /></Field>
+          <Toggle label={t('allergies.confirmedLabel')} checked={form.confirmedByVet}
             onChange={v => setForm(p => ({ ...p, confirmedByVet: v }))} />
         </FormSheet>
       )}

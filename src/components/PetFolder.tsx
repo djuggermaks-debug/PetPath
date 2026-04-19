@@ -95,6 +95,27 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, on
     setActiveModule(null);
   }, [pet.id]);
 
+  // Telegram hardware back button
+  useEffect(() => {
+    const tg = (window as any).Telegram?.WebApp;
+    if (!tg?.BackButton) return;
+    const isOpen = !!(activeModule || showEditForm || showPaywall || confirmDelete || vetCardData);
+    if (isOpen) {
+      tg.BackButton.show();
+      const handler = () => {
+        if (vetCardData) setVetCardData(null);
+        else if (showPaywall) setShowPaywall(false);
+        else if (confirmDelete) setConfirmDelete(false);
+        else if (showEditForm) setShowEditForm(false);
+        else if (activeModule) setActiveModule(null);
+      };
+      tg.BackButton.onClick(handler);
+      return () => { tg.BackButton.offClick(handler); };
+    } else {
+      tg.BackButton.hide();
+    }
+  }, [activeModule, showEditForm, showPaywall, confirmDelete, vetCardData]);
+
   const activeModuleData = MODULE_REGISTRY.find(m => m.id === activeModule);
   const ActiveComponent = activeModuleData?.component;
 

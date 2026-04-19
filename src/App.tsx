@@ -44,8 +44,15 @@ function App() {
       localStorage.setItem('_welcomed', '1');
     }
     loadAllPets().then(loaded => {
-      setPets(loaded);
-      if (loaded.length > 0) setActivePet(loaded[0]);
+      if (loaded.length > 0) {
+        setPets(loaded);
+        setActivePet(loaded[0]);
+      } else if (welcomed) {
+        const empty = createEmptyPet();
+        setPets([empty]);
+        setActivePet(empty);
+        savePet(empty).catch(console.error);
+      }
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);

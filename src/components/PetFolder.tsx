@@ -294,7 +294,12 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, on
               <ActiveComponent petId={pet.id} />
             </div>
           ) : (
-            <PetCard pet={pet} calcAge={calcAge} onShowVet={handleShowVet} />
+            <PetCard pet={pet} calcAge={calcAge} onShowVet={handleShowVet}
+              onPhotoChange={async (dataUrl) => {
+                const updated = await updatePet(pet.id, { photo: dataUrl });
+                onUpdatePet(updated);
+              }}
+            />
           )}
 
           {vetAdvice && (

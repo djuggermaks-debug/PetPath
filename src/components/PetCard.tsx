@@ -1,5 +1,6 @@
+import { useRef } from 'react';
 import type { Pet } from '../types';
-import { Weight, Calendar, Dna, Stethoscope } from 'lucide-react';
+import { Weight, Calendar, Dna, Stethoscope, Camera } from 'lucide-react';
 import { PetCalendar } from './PetCalendar';
 import { useTranslation } from 'react-i18next';
 
@@ -7,10 +8,23 @@ interface PetCardProps {
   pet: Pet;
   calcAge: (birthDate: string) => string;
   onShowVet?: () => void;
+  onPhotoChange?: (photo: string) => void;
 }
 
-export function PetCard({ pet, calcAge, onShowVet }: PetCardProps) {
+export function PetCard({ pet, calcAge, onShowVet, onPhotoChange }: PetCardProps) {
   const { t } = useTranslation();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoClick = () => { if (onPhotoChange) fileRef.current?.click(); };
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !onPhotoChange) return;
+    const reader = new FileReader();
+    reader.onload = ev => onPhotoChange(ev.target?.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   const speciesLabel = {
     cat: t('pet.species.cat'),
@@ -21,7 +35,7 @@ export function PetCard({ pet, calcAge, onShowVet }: PetCardProps) {
 
   return (
     <div className="pet-card">
-      <div className="pet-card-photo-wrap">
+      <div className="pet-card-photo-wrap" onClick={handlePhotoClick} style={onPhotoChange ? { cursor: 'pointer' } : undefined}>
         {pet.photo ? (
           <img src={pet.photo} alt={pet.name} className="pet-card-photo" />
         ) : (
@@ -29,7 +43,13 @@ export function PetCard({ pet, calcAge, onShowVet }: PetCardProps) {
             <span>{pet.species === 'dog' ? '🐕' : pet.species === 'bird' ? '🐦' : '🐈'}</span>
           </div>
         )}
+        {onPhotoChange && (
+          <div className="pet-card-photo-camera">
+            <Camera size={14} />
+          </div>
+        )}
         <div className="pet-card-photo-label font-typewriter">{t('pet.photo')}</div>
+        <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} hidden />
       </div>
 
       <div className="pet-card-info">

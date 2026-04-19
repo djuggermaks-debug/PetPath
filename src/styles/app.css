@@ -531,6 +531,20 @@
   justify-content: center;
   font-size: 36px;
 }
+.pet-card-photo-camera {
+  position: absolute;
+  bottom: 18px;
+  right: 2px;
+  background: rgba(44,24,16,0.55);
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  pointer-events: none;
+}
 .pet-card-photo-label {
   font-size: 8px;
   text-align: center;

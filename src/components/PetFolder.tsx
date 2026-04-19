@@ -327,6 +327,7 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, on
       {showEditForm && (
         <OnboardingForm
           initialPet={pet}
+          onCancel={() => setShowEditForm(false)}
           onComplete={async (updated) => {
             const saved = await updatePet(pet.id, updated);
             onUpdatePet(saved);

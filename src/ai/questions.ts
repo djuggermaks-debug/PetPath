@@ -9,8 +9,47 @@ export interface PendingQuestion {
 }
 
 export function getPendingQuestions(pet: Pet, _allData: Record<string, unknown[]>): PendingQuestion[] {
-  const name = pet.name;
+  const name = pet.name || '…';
   const t = (key: string, opts?: Record<string, unknown>) => i18n.t(key, opts);
+
+  const isProfileIncomplete = !pet.name || !pet.birthDate || pet.weight === 0 || !pet.breed;
+
+  if (isProfileIncomplete) {
+    const questions: PendingQuestion[] = [];
+    if (!pet.name) {
+      questions.push({
+        id: 'setupName',
+        icon: '🐾',
+        text: t('questionPrompt.questions.setupName.text'),
+        inputHint: t('questionPrompt.questions.setupName.hint'),
+      });
+    }
+    if (pet.name && !pet.breed) {
+      questions.push({
+        id: 'setupBreed',
+        icon: '🧬',
+        text: t('questionPrompt.questions.setupBreed.text', { name }),
+        inputHint: t('questionPrompt.questions.setupBreed.hint'),
+      });
+    }
+    if (!pet.birthDate) {
+      questions.push({
+        id: 'setupBirthDate',
+        icon: '🎂',
+        text: t('questionPrompt.questions.setupBirthDate.text', { name }),
+        inputHint: t('questionPrompt.questions.setupBirthDate.hint'),
+      });
+    }
+    if (pet.weight === 0) {
+      questions.push({
+        id: 'setupWeight',
+        icon: '⚖️',
+        text: t('questionPrompt.questions.setupWeight.text', { name }),
+        inputHint: t('questionPrompt.questions.setupWeight.hint', { name }),
+      });
+    }
+    return questions;
+  }
 
   return [
     {

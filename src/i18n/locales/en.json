@@ -208,6 +208,26 @@
       "vet": {
         "text": "Has {{name}} been to the vet recently? Tell me.",
         "hint": "We visited the vet, "
+      },
+      "setupName": {
+        "text": "What's your pet's name?",
+        "hint": "Their name is "
+      },
+      "setupSpecies": {
+        "text": "What kind of pet do you have — cat, dog, bird?",
+        "hint": "It's a "
+      },
+      "setupBirthDate": {
+        "text": "When was {{name}} born?",
+        "hint": "Born on "
+      },
+      "setupWeight": {
+        "text": "How much does {{name}} weigh?",
+        "hint": "{{name}} weighs "
+      },
+      "setupBreed": {
+        "text": "What breed is {{name}}?",
+        "hint": "Breed is "
       }
     }
   },

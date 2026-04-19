@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 interface OnboardingFormProps {
   onComplete: (pet: Pet) => void;
   initialPet?: Pet;
-  onCancel?: () => void;
+  onCancel: () => void;
 }
 
 export function OnboardingForm({ onComplete, initialPet, onCancel }: OnboardingFormProps) {
@@ -75,9 +75,7 @@ export function OnboardingForm({ onComplete, initialPet, onCancel }: OnboardingF
         <div className="onboarding-header font-typewriter">
           <span className="stamp">{isEditing ? t('onboarding.editCase') : t('onboarding.newCase')}</span>
           <h2>{isEditing ? t('onboarding.editProfile') : t('onboarding.addPet')}</h2>
-          {onCancel && (
-            <button className="onboarding-cancel" onClick={onCancel}>✕</button>
-          )}
+          <button className="onboarding-cancel" onClick={onCancel}>✕</button>
         </div>
 
         <div className="photo-upload" onClick={() => fileRef.current?.click()}>

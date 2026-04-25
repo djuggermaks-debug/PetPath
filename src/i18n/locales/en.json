@@ -59,11 +59,26 @@
     "openInTg": "Open in Telegram",
     "paymentSuccess": "✅ Payment successful! Premium activated for 30 days.",
     "features": {
-      "voice": { "title": "Talk or type", "desc": "AI understands and organises everything automatically" },
-      "photo": { "title": "Photo of meds & food", "desc": "Snap the package — name and dosage detected automatically" },
-      "vet": { "title": "AI vet analysis", "desc": "Reviews full history and gives recommendations" },
-      "card": { "title": "Show to vet", "desc": "One tap — full pet record ready to share" },
-      "records": { "title": "Vaccines, meds, allergies", "desc": "All in one place, always at hand" }
+      "voice": {
+        "title": "Talk or type",
+        "desc": "AI understands and organises everything automatically"
+      },
+      "photo": {
+        "title": "Photo of meds & food",
+        "desc": "Snap the package — name and dosage detected automatically"
+      },
+      "vet": {
+        "title": "AI vet analysis",
+        "desc": "Reviews full history and gives recommendations"
+      },
+      "card": {
+        "title": "Show to vet",
+        "desc": "One tap — full pet record ready to share"
+      },
+      "records": {
+        "title": "Vaccines, meds, allergies",
+        "desc": "All in one place, always at hand"
+      }
     }
   },
   "onboarding": {
@@ -132,16 +147,46 @@
     "closeBtn": "Close"
   },
   "modules": {
-    "health": { "label": "Health", "short": "Health" },
-    "medications": { "label": "Medications", "short": "Meds" },
-    "vaccines": { "label": "Vaccines", "short": "Vaccines" },
-    "allergies": { "label": "Allergies", "short": "Allergy" },
-    "nutrition": { "label": "Nutrition", "short": "Food" },
-    "habits": { "label": "Habits", "short": "Habits" },
-    "documents": { "label": "Documents", "short": "Docs" },
-    "media": { "label": "Media", "short": "Media" },
-    "items": { "label": "Items", "short": "Items" },
-    "expenses": { "label": "Expenses", "short": "Costs" }
+    "health": {
+      "label": "Health",
+      "short": "Health"
+    },
+    "medications": {
+      "label": "Medications",
+      "short": "Meds"
+    },
+    "vaccines": {
+      "label": "Vaccines",
+      "short": "Vaccines"
+    },
+    "allergies": {
+      "label": "Allergies",
+      "short": "Allergy"
+    },
+    "nutrition": {
+      "label": "Nutrition",
+      "short": "Food"
+    },
+    "habits": {
+      "label": "Habits",
+      "short": "Habits"
+    },
+    "documents": {
+      "label": "Documents",
+      "short": "Docs"
+    },
+    "media": {
+      "label": "Media",
+      "short": "Media"
+    },
+    "items": {
+      "label": "Items",
+      "short": "Items"
+    },
+    "expenses": {
+      "label": "Expenses",
+      "short": "Costs"
+    }
   },
   "moduleShared": {
     "emptyTitle": "No records in «{{label}}» yet",
@@ -214,7 +259,7 @@
         "hint": "Their name is "
       },
       "setupSpecies": {
-        "text": "What kind of pet do you have — cat, dog, bird?",
+        "text": "What kind of pet do you have — cat, dog, bird, or something else?",
         "hint": "It's a "
       },
       "setupBirthDate": {

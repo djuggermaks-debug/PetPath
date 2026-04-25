@@ -44,6 +44,7 @@ items (вещи питомца: игрушки, лежанки, миски, по
 
 profile (обновление данных профиля питомца: имя, вид, порода, вес, дата рождения, окрас, пол):
 { "module": "profile", "confidence": 0.9, "data": { "name": "имя питомца", "species": "cat"|"dog"|"bird"|"other", "breed": "порода", "weight": 4.5, "birthDate": "YYYY-MM-DD", "color": "окрас", "gender": "male"|"female" } }
+species: кошка/кот → "cat", собака/пёс → "dog", птица/попугай → "bird", любое другое животное (ящерица, хомяк, черепаха, кролик и т.д.) → "other".
 Включай только те поля profile, которые явно упомянуты.
 
 ПРИМЕРЫ:
@@ -96,6 +97,7 @@ items (pet items: toys, beds, bowls, leashes, clothing, cages, carriers, any obj
 
 profile (update pet profile: name, species, breed, weight, date of birth, colour, gender):
 { "module": "profile", "confidence": 0.9, "data": { "name": "pet name", "species": "cat"|"dog"|"bird"|"other", "breed": "breed", "weight": 4.5, "birthDate": "YYYY-MM-DD", "color": "colour", "gender": "male"|"female" } }
+species: cat/kitten → "cat", dog/puppy → "dog", bird/parrot → "bird", any other animal (lizard, hamster, turtle, rabbit, etc.) → "other".
 Only include profile fields that are explicitly mentioned.
 
 RULES:

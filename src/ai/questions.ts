@@ -24,13 +24,15 @@ export function getPendingQuestions(pet: Pet, _allData: Record<string, unknown[]
         inputHint: t('questionPrompt.questions.setupName.hint'),
       });
     }
-    if (pet.name && !pet.breed) {
+    if (pet.name && pet.species === 'cat' && !pet.breed) {
       questions.push({
         id: 'setupSpecies',
         icon: '🐾',
         text: t('questionPrompt.questions.setupSpecies.text'),
         inputHint: t('questionPrompt.questions.setupSpecies.hint'),
       });
+    }
+    if (pet.name && !pet.breed) {
       questions.push({
         id: 'setupBreed',
         icon: '🧬',

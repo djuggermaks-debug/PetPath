@@ -26,6 +26,12 @@ export function getPendingQuestions(pet: Pet, _allData: Record<string, unknown[]
     }
     if (pet.name && !pet.breed) {
       questions.push({
+        id: 'setupSpecies',
+        icon: '🐾',
+        text: t('questionPrompt.questions.setupSpecies.text'),
+        inputHint: t('questionPrompt.questions.setupSpecies.hint'),
+      });
+      questions.push({
         id: 'setupBreed',
         icon: '🧬',
         text: t('questionPrompt.questions.setupBreed.text', { name }),

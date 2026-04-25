@@ -98,7 +98,7 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, on
 
   useEffect(() => {
     loadQuestions();
-  }, [pet.name, pet.breed, pet.birthDate, pet.weight]);
+  }, [pet.name, pet.species, pet.breed, pet.birthDate, pet.weight]);
 
   // Telegram hardware back button
   useEffect(() => {

@@ -12,6 +12,7 @@ import { Paywall } from './Paywall';
 import { DevPanel } from '../dev/DevPanel';
 import { parseUserText, parseImageData } from '../ai/accountant';
 import { analyzeWithVetAgent } from '../ai/vetAgent';
+import { detectPetBreed } from '../ai/breedDetector';
 import { getPendingQuestions } from '../ai/questions';
 import { loadModuleData, saveModuleData, deletePet, updatePet } from '../storage';
 import { devLogger } from '../dev/logger';
@@ -94,6 +95,10 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, on
     setParseResult(null);
     setActiveModule(null);
   }, [pet.id]);
+
+  useEffect(() => {
+    loadQuestions();
+  }, [pet.name, pet.breed, pet.birthDate, pet.weight]);
 
   // Telegram hardware back button
   useEffect(() => {
@@ -296,8 +301,19 @@ export function PetFolder({ pet, onAddPet, allPets, onSelectPet, onDeletePet, on
           ) : (
             <PetCard pet={pet} calcAge={calcAge} onShowVet={handleShowVet}
               onPhotoChange={async (dataUrl) => {
+                const [meta, base64] = dataUrl.split(',');
+                const mimeType = meta.split(':')[1].split(';')[0];
                 const updated = await updatePet(pet.id, { photo: dataUrl });
                 onUpdatePet(updated);
+                detectPetBreed(base64, mimeType, pet.species).then(async info => {
+                  const patches: Partial<typeof pet> = {};
+                  if (info.breed && !pet.breed) patches.breed = info.breed;
+                  if (info.color && !pet.color) patches.color = info.color;
+                  if (Object.keys(patches).length > 0) {
+                    const withBreed = await updatePet(pet.id, patches);
+                    onUpdatePet(withBreed);
+                  }
+                }).catch(() => {});
               }}
             />
           )}

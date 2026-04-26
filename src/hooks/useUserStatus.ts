@@ -32,19 +32,30 @@ export function useUserStatus(): UserInfo {
         .eq('telegram_user_id', userId)
         .single();
 
+      const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
+
       if (!data) {
         // Первый вход — создаём запись с триалом
-        const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
         const { data: created } = await supabase
           .from('users')
           .insert({
             telegram_user_id: userId,
             trial_started_at: new Date().toISOString(),
+            first_name: tgUser?.first_name ?? null,
             username: tgUser?.username ?? null,
           })
           .select()
           .single();
         data = created;
+      } else {
+        // Обновляем имя при каждом входе
+        await supabase
+          .from('users')
+          .update({
+            first_name: tgUser?.first_name ?? null,
+            username: tgUser?.username ?? null,
+          })
+          .eq('telegram_user_id', userId);
       }
 
       if (!data) {

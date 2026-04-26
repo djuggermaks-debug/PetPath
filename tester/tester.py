@@ -27,12 +27,34 @@ def send_report(text: str):
     url = f'https://api.telegram.org/bot{REPORT_BOT_TOKEN}/sendMessage'
     requests.post(url, data={'chat_id': REPORT_CHAT_ID, 'text': text, 'parse_mode': 'HTML'})
 
-# Messages to send through the InputBar — AI will parse and route them
-TEST_MESSAGES = [
-    "My pet's name is Барсик",
-    "Today ate Royal Canin dry food 50g in the morning",
-    "Vet checkup today, weight 4.2kg, all normal",
-    "Rabies vaccine done today",
+
+# (message, tab_to_check, check_question)
+TEST_CASES = [
+    (
+        "My pet's name is Барсик",
+        None,
+        'Отображается ли имя питомца "Барсик" в интерфейсе?',
+    ),
+    (
+        'Today ate Royal Canin dry food 50g in the morning',
+        'Nutrition',
+        'Видна ли запись о питании с Royal Canin или 50g во вкладке Nutrition?',
+    ),
+    (
+        'Vet checkup today, weight 4.2kg, all normal',
+        'Health',
+        'Видна ли запись о визите к ветеринару или вес 4.2 во вкладке Health?',
+    ),
+    (
+        'Rabies vaccine done today',
+        'Vaccines',
+        'Видна ли запись о прививке от бешенства во вкладке Vaccines?',
+    ),
+    (
+        'фывафыва 123 !!!',
+        None,
+        'Приложение работает нормально (не белый экран, не заморожено)? Есть ли какой-то ответ на бессмысленный ввод?',
+    ),
 ]
 
 
@@ -49,7 +71,6 @@ async def save_screenshot(frame_el, page, label=''):
 
 
 async def ask_gemini_check(img: Image.Image, question: str) -> dict:
-    """Ask Gemini to verify something visible on the screenshot."""
     buf = io.BytesIO()
     img.save(buf, format='PNG')
     img_b64 = base64.b64encode(buf.getvalue()).decode()
@@ -73,18 +94,47 @@ async def ask_gemini_check(img: Image.Image, question: str) -> dict:
 
 
 async def type_and_send(frame, text: str) -> bool:
-    """Type text into InputBar and send it. Returns True if successful."""
     try:
         await frame.click('.input-textarea', timeout=5000)
         await asyncio.sleep(0.5)
         await frame.fill('.input-textarea', text)
         await asyncio.sleep(0.5)
         await frame.click('.send-btn', timeout=5000)
-        await asyncio.sleep(3)
+        await asyncio.sleep(4)
         return True
     except Exception as e:
         print(f'  type_and_send failed: {e}')
         return False
+
+
+async def open_tab(frame, tab_name: str) -> bool:
+    """Click a side tab by its label text."""
+    try:
+        await frame.click(f'.side-tab:has-text("{tab_name}")', timeout=4000)
+        await asyncio.sleep(2)
+        return True
+    except Exception:
+        # fallback: try partial match via evaluate
+        try:
+            await frame.evaluate(f"""
+                Array.from(document.querySelectorAll('.side-tab-label'))
+                    .find(el => el.textContent.includes('{tab_name}'))
+                    ?.closest('.side-tab')?.click()
+            """)
+            await asyncio.sleep(2)
+            return True
+        except Exception as e:
+            print(f'  open_tab({tab_name}) failed: {e}')
+            return False
+
+
+async def go_back_to_chat(frame):
+    """Return to main chat view."""
+    try:
+        await frame.click('.side-tab--active', timeout=3000)
+        await asyncio.sleep(1)
+    except Exception:
+        pass
 
 
 async def open_miniapp(page):
@@ -156,7 +206,7 @@ async def main():
             await browser.close()
             return
 
-        # Step 1: Handle Welcome Screen if present
+        # Welcome screen
         img = await save_screenshot(frame_el, page, '01_start')
         check = await ask_gemini_check(img, 'Видна ли кнопка "Start for free →"?')
         print(f'Welcome screen: {check}')
@@ -170,51 +220,78 @@ async def main():
 
         await save_screenshot(frame_el, page, '02_after_welcome')
 
-        # Step 2: Send each test message through InputBar
-        for i, message in enumerate(TEST_MESSAGES):
-            print(f'\n--- Sending: {message[:50]}')
+        # Run test cases
+        for i, (message, tab, verify_question) in enumerate(TEST_CASES):
+            print(f'\n--- [{i+1}/{len(TEST_CASES)}] Sending: {message[:50]}')
             success = await type_and_send(frame, message)
-            img = await save_screenshot(frame_el, page, f'03_msg{i}')
+            img_after_send = await save_screenshot(frame_el, page, f'03_send_{i}')
+
+            sent_ok = False
+            tab_ok = None
+            details_send = ''
+            details_tab = ''
 
             if success:
-                check = await ask_gemini_check(
-                    img,
-                    f'Была ли успешно обработана запись "{message[:40]}"? Видны ли какие-то изменения в UI или подтверждение?'
+                send_check = await ask_gemini_check(
+                    img_after_send,
+                    f'Была ли успешно обработана запись "{message[:40]}"? Видно ли подтверждение сохранения?'
                 )
-                results.append({
-                    'message': message[:60],
-                    'sent': True,
-                    'processed': check.get('ok', False),
-                    'details': check.get('details', ''),
-                })
-                print(f'  Processed: {check.get("ok")} — {check.get("details", "")[:80]}')
+                sent_ok = send_check.get('ok', False)
+                details_send = send_check.get('details', '')
+                print(f'  Sent: {sent_ok} — {details_send[:80]}')
+
+                # Check tab if specified
+                if tab:
+                    tab_opened = await open_tab(frame, tab)
+                    if tab_opened:
+                        img_tab = await save_screenshot(frame_el, page, f'04_tab_{tab}_{i}')
+                        tab_check = await ask_gemini_check(img_tab, verify_question)
+                        tab_ok = tab_check.get('ok', False)
+                        details_tab = tab_check.get('details', '')
+                        print(f'  Tab {tab}: {tab_ok} — {details_tab[:80]}')
+                        # Go back to chat
+                        await go_back_to_chat(frame)
+                        await asyncio.sleep(1)
+                    else:
+                        tab_ok = False
+                        details_tab = f'Не удалось открыть вкладку {tab}'
             else:
-                results.append({
-                    'message': message[:60],
-                    'sent': False,
-                    'processed': False,
-                    'details': 'Failed to type/send',
-                })
+                details_send = 'Failed to type/send'
+
+            results.append({
+                'message': message[:60],
+                'sent': success,
+                'processed': sent_ok,
+                'tab': tab,
+                'tab_ok': tab_ok,
+                'details_send': details_send,
+                'details_tab': details_tab,
+            })
 
             await asyncio.sleep(2)
 
-        # Step 3: Final screenshot
-        await save_screenshot(frame_el, page, '04_final')
+        await save_screenshot(frame_el, page, '05_final')
         await browser.close()
 
     # Build report
-    sent = sum(1 for r in results if r['sent'])
-    processed = sum(1 for r in results if r['processed'])
     total = len(results)
-    emoji = '✅' if processed == total else '⚠️'
+    processed = sum(1 for r in results if r['processed'])
+    tabs_checked = [r for r in results if r['tab'] is not None]
+    tabs_ok = sum(1 for r in tabs_checked if r['tab_ok'])
+    all_ok = processed == total and tabs_ok == len(tabs_checked)
+    emoji = '✅' if all_ok else '⚠️'
 
     report = f'<b>🤖 PetPath UI Test Report</b>\n'
-    report += f'<b>{emoji} Отправлено {sent}/{total}, обработано {processed}/{total}</b>\n\n'
+    report += f'<b>{emoji} Записи: {processed}/{total} | Вкладки: {tabs_ok}/{len(tabs_checked)}</b>\n\n'
+
     for r in results:
         icon = '✅' if r['processed'] else ('📤' if r['sent'] else '❌')
         report += f'{icon} {r["message"]}\n'
-        if r['details']:
-            report += f'   └ {r["details"][:100]}\n'
+        if r['details_send']:
+            report += f'   └ {r["details_send"][:100]}\n'
+        if r['tab'] is not None:
+            tab_icon = '✅' if r['tab_ok'] else '❌'
+            report += f'   {tab_icon} Вкладка {r["tab"]}: {r["details_tab"][:100]}\n'
 
     print('\n' + report)
     send_report(report)

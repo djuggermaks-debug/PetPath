@@ -16,7 +16,7 @@ REPORT_CHAT_ID = os.environ['REPORT_CHAT_ID']
 GEMINI_API_KEY = os.environ['GEMINI_API_KEY']
 
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-2.0-flash')
+model = genai.GenerativeModel('gemini-2.5-flash')
 
 TEST_SCENARIOS = [
     "Запустить бота /start и пройти онбординг — добавить питомца",

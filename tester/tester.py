@@ -170,8 +170,7 @@ def send_report(text):
 
 
 async def main():
-    padded = TELEGRAM_WEB_SESSION_B64 + '=' * (-len(TELEGRAM_WEB_SESSION_B64) % 4)
-    storage_state = json.loads(base64.b64decode(padded).decode())
+    storage_state = json.loads(TELEGRAM_WEB_SESSION_B64)
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)

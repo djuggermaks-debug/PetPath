@@ -1,6 +1,5 @@
 import asyncio
 import json
-import base64
 from playwright.async_api import async_playwright
 
 async def main():
@@ -17,10 +16,10 @@ async def main():
         input()
 
         storage = await context.storage_state()
-        storage_b64 = base64.b64encode(json.dumps(storage).encode()).decode()
+        storage_json = json.dumps(storage)
 
         print("\n✅ Твой TELEGRAM_WEB_SESSION (сохрани как GitHub Secret):")
-        print(storage_b64)
+        print(storage_json)
 
         await browser.close()
 

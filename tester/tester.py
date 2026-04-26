@@ -95,25 +95,50 @@ async def open_miniapp(page):
     await asyncio.sleep(8)
     await save_screenshot(page, 'after_navigate')
 
-    # Try known selectors for bot menu / mini app button
+    # Click the blue WebApp launch button (square icon left of emoji button)
+    # Try selectors first, then fall back to coordinates
+    opened = False
     selectors = [
         '.bot-menu-button',
         'button.bot-menu',
-        '.menu-button',
         '[class*="bot-menu"]',
-        'button[class*="menu"]',
+        '.btn-icon.tgico-botmenu',
     ]
     for sel in selectors:
         try:
             await page.click(sel, timeout=2000)
-            print(f"  Нажал кнопку: {sel}")
-            await asyncio.sleep(3)
+            print(f"  Нажал по селектору: {sel}")
+            opened = True
             break
         except Exception:
             pass
 
-    await save_screenshot(page, 'after_menu_click')
+    if not opened:
+        # Coordinates of the blue square button based on observed screenshots (1280x800)
+        await page.mouse.click(622, 752)
+        print("  Нажал по координатам (622, 752)")
+
     await asyncio.sleep(3)
+    await save_screenshot(page, 'after_webapp_click')
+
+    # Confirm "Open" dialog if it appears
+    confirm_selectors = [
+        'button.popup-button >> text=Open',
+        'button >> text=Open',
+        'button >> text=Открыть',
+        '.popup-button.btn.primary',
+        'button.confirm-dialog-button',
+    ]
+    for sel in confirm_selectors:
+        try:
+            await page.click(sel, timeout=3000)
+            print(f"  Подтвердил диалог: {sel}")
+            break
+        except Exception:
+            pass
+
+    await asyncio.sleep(4)
+    await save_screenshot(page, 'after_confirm')
 
     # Search for mini app iframe
     for frame in page.frames:

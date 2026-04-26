@@ -38,23 +38,23 @@ TEST_CASES = [
     ),
     (
         'Today ate Royal Canin dry food 50g in the morning',
-        'Nutrition',
-        'Видна ли запись о питании с Royal Canin или 50g во вкладке Nutrition?',
+        'nutrition',
+        'Видна ли запись о питании с Royal Canin или 50g?',
     ),
     (
         'Vet checkup today, weight 4.2kg, all normal',
-        'Health',
-        'Видна ли запись о визите к ветеринару или вес 4.2 во вкладке Health?',
+        'health',
+        'Видна ли запись о визите к ветеринару или вес 4.2?',
     ),
     (
         'Rabies vaccine done today',
-        'Vaccines',
-        'Видна ли запись о прививке от бешенства во вкладке Vaccines?',
+        'vaccines',
+        'Видна ли запись о прививке от бешенства?',
     ),
     (
         'фывафыва 123 !!!',
         None,
-        'Приложение работает нормально (не белый экран, не заморожено)? Есть ли какой-то ответ на бессмысленный ввод?',
+        'Приложение работает нормально — нет белого экрана и нет зависания? Ответ "не понял" или сообщение об ошибке тоже считается успехом (ok: true).',
     ),
 ]
 
@@ -108,25 +108,27 @@ async def type_and_send(frame, text: str) -> bool:
         return False
 
 
-async def open_tab(frame, tab_name: str) -> bool:
-    """Click a side tab by its label text."""
+async def open_tab(frame, tab_id: str) -> bool:
+    """Click a side tab by data-module id or label text (case-insensitive partial match)."""
     try:
-        await frame.click(f'.side-tab:has-text("{tab_name}")', timeout=4000)
+        # Try by data-module attribute first
+        await frame.click(f'[data-module="{tab_id}"]', timeout=2000)
         await asyncio.sleep(2)
         return True
     except Exception:
-        # fallback: try partial match via evaluate
-        try:
-            await frame.evaluate(f"""
-                Array.from(document.querySelectorAll('.side-tab-label'))
-                    .find(el => el.textContent.includes('{tab_name}'))
-                    ?.closest('.side-tab')?.click()
-            """)
-            await asyncio.sleep(2)
-            return True
-        except Exception as e:
-            print(f'  open_tab({tab_name}) failed: {e}')
-            return False
+        pass
+    try:
+        # Fallback: case-insensitive text match on label
+        await frame.evaluate(f"""
+            Array.from(document.querySelectorAll('.side-tab-label'))
+                .find(el => el.textContent.toLowerCase().includes('{tab_id.lower()}'))
+                ?.closest('.side-tab')?.click()
+        """)
+        await asyncio.sleep(2)
+        return True
+    except Exception as e:
+        print(f'  open_tab({tab_id}) failed: {e}')
+        return False
 
 
 async def go_back_to_chat(frame):

@@ -181,7 +181,7 @@ async def run_scenario(page, frame_or_none, scenario_name):
                     'issue': decision.get('issue', ''), 'steps': step}
 
         if action == 'click':
-            sel = decision.get('selector', '').strip()
+            sel = (decision.get('selector') or '').strip()
             clicked = False
             if sel:
                 try:

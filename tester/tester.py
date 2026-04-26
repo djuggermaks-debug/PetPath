@@ -25,7 +25,8 @@ _counter = 0
 
 def send_report(text: str):
     url = f'https://api.telegram.org/bot{REPORT_BOT_TOKEN}/sendMessage'
-    requests.post(url, data={'chat_id': REPORT_CHAT_ID, 'text': text, 'parse_mode': 'HTML'})
+    resp = requests.post(url, data={'chat_id': REPORT_CHAT_ID, 'text': text, 'parse_mode': 'HTML'})
+    print(f'  Telegram report: {resp.status_code} {resp.text[:200]}')
 
 
 # (message, tab_to_check, check_question)

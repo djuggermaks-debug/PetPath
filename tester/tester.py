@@ -22,66 +22,73 @@ SCREENSHOTS_DIR = Path('tester/screenshots')
 SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
 _counter = 0
 
-# App structure reference for Gemini:
 APP_CONTEXT = """
-Приложение PetPath — Telegram Mini App (React), трекер здоровья питомцев.
+Ты видишь скриншот мини-приложения PetPath (трекер здоровья питомцев).
 
-UI элементы:
-- Welcome screen: кнопка "Start for free →" — появляется только при первом запуске
-- Главный экран: карточка питомца сверху, слева вертикальный сайдбар с иконками модулей
-- Сайдбар: Health, Meds, Vaccines, Allergy, Food, Habits, Docs, Media, Items, Costs
-- Карточка питомца: имя, вид, пол, фото. Кнопка редактирования (карандаш ✏️)
-- Внизу: полоска QuestionPrompt с вопросом и текстом "tap to answer" — клик по ней вставляет подсказку в поле ввода
-- Самый низ: InputBar — textarea с placeholder "Write anything about your pet...", кнопка отправки (стрелка →)
-- Чтобы записать данные: кликнуть в textarea (.input-textarea), написать текст, нажать Send (.send-btn)
-- Записи появляются в модуле после отправки текста через InputBar
-- Имя питомца задаётся через InputBar (написать "My pet's name is Barсик" или через вопрос в QuestionPrompt)
+Элементы интерфейса:
+- Welcome screen: большая кнопка "Start for free →" — только при первом запуске
+- Главный экран: карточка питомца сверху (имя, вид "Cat", пол "Male", фото)
+- Левый сайдбар: иконки Health, Meds, Vaccines, Allergy, Food, Habits, Docs, Media, Items, Costs
+- QuestionPrompt: полоска над полем ввода с вопросом и подписью "tap to answer" — клик вставляет подсказку
+- InputBar внизу: textarea с placeholder "Write anything about your pet..." и кнопка отправки (стрелка)
+- Кнопка редактирования питомца: иконка карандаша ✏️ в заголовке карточки
+
+Как записать данные: кликнуть в textarea → напечатать текст → нажать кнопку отправки.
+CSS selectors: textarea = .input-textarea, кнопка отправки = .send-btn
 """
 
 TEST_SCENARIOS = [
     {
-        'name': 'Онбординг и имя питомца',
+        'name': 'Имя питомца',
         'steps': [
-            'Если видишь Welcome screen — нажми "Start for free →"',
-            'Кликни на QuestionPrompt (полоска внизу с вопросом про имя, "tap to answer")',
-            'Напечатай в поле ввода (.input-textarea) текст "Барсик" и отправь кнопкой Send',
-            'Убедись что имя питомца обновилось в карточке',
+            'Если видишь кнопку "Start for free →" — нажми её. Иначе переходи к следующему шагу.',
+            'Кликни на QuestionPrompt (полоска с текстом "What\'s your pet\'s name?" и "tap to answer")',
+            'Кликни на textarea (.input-textarea) и напечатай имя питомца',
+            'Нажми кнопку отправки (.send-btn) чтобы сохранить имя',
         ],
     },
     {
-        'name': 'Записать приём пищи',
+        'name': 'Записать питание',
         'steps': [
             'Кликни на иконку "Food" в левом сайдбаре',
-            'Кликни в поле ввода (.input-textarea)',
-            'Напечатай "сухой корм Royal Canin 50г" и отправь',
-            'Убедись что запись появилась',
+            'Кликни на textarea (.input-textarea)',
+            'Напечатай текст о питании питомца',
+            'Нажми кнопку отправки (.send-btn)',
         ],
     },
     {
         'name': 'Записать здоровье',
         'steps': [
             'Кликни на иконку "Health" в левом сайдбаре',
-            'Кликни в поле ввода (.input-textarea)',
-            'Напечатай "осмотр у ветеринара, всё в норме" и отправь',
-            'Убедись что запись появилась',
+            'Кликни на textarea (.input-textarea)',
+            'Напечатай текст о здоровье питомца',
+            'Нажми кнопку отправки (.send-btn)',
         ],
     },
     {
-        'name': 'Профиль питомца',
+        'name': 'Редактировать профиль',
         'steps': [
-            'Кликни на кнопку редактирования ✏️ в карточке питомца',
-            'Проверь что открылась форма редактирования',
-            'Убедись что поля заполнены и форма работает',
+            'Найди и кликни кнопку с иконкой карандаша ✏️ в карточке питомца',
+            'Убедись что открылась форма редактирования с полями',
         ],
     },
 ]
 
+STEP_TEXTS = {
+    'Напечатай текст о питании питомца': 'сухой корм Royal Canin 50г',
+    'Напечатай текст о здоровье питомца': 'осмотр у ветеринара, всё в норме',
+    'Напечатай имя питомца': 'Барсик',
+}
 
-async def save_screenshot(target, label=''):
+
+async def save_screenshot(frame_el, page, label=''):
     global _counter
     _counter += 1
     path = SCREENSHOTS_DIR / f'{_counter:03d}_{label[:30]}.png'
-    data = await target.screenshot()
+    try:
+        data = await frame_el.screenshot()
+    except Exception:
+        data = await page.screenshot()
     path.write_bytes(data)
     return Image.open(io.BytesIO(data))
 
@@ -92,39 +99,36 @@ async def ask_gemini(img: Image.Image, scenario_name: str, step_hint: str, histo
     img_b64 = base64.b64encode(buf.getvalue()).decode()
 
     recent = '\n'.join(
-        f"  шаг {h['step']}: {h['action']} — {h['value']!r} ({h['reasoning']})"
+        f"  шаг {h['step']}: {h['action']} {h['value']!r} — {h['reasoning']}"
         for h in history[-4:]
     ) or '  (начало)'
 
     prompt = f"""{APP_CONTEXT}
 
 Сценарий: {scenario_name}
-Текущая задача: {step_hint}
+Текущий шаг: {step_hint}
 Последние действия:
 {recent}
 
-Посмотри на скриншот и выполни следующее действие.
-Ответь ТОЛЬКО валидным JSON (без markdown):
+Посмотри на скриншот (это только мини-приложение, без Telegram) и выполни шаг.
+Ответь ТОЛЬКО валидным JSON без markdown:
 {{
   "action": "click" | "type" | "done" | "fail",
-  "selector": "CSS селектор элемента для клика (только для action=click)",
+  "selector": "CSS селектор (для click если знаешь точный)",
   "x": 0.5,
   "y": 0.5,
-  "text": "текст который нужно НАПЕЧАТАТЬ (только для action=type, пиши реальные слова)",
-  "reasoning": "одна строка что делаешь",
+  "text": "реальный текст для печати (только для action=type)",
+  "reasoning": "одна строка",
   "status": "ok" | "bug",
-  "issue": "описание бага если есть"
+  "issue": "описание если bug"
 }}
 
 Правила:
-- action=type: поле text = реальный текст для печати (напр. "Барсик", "корм Royal Canin 50г")
-- action=click: используй selector если знаешь CSS, иначе x/y координаты (0.0–1.0)
-- done = задача выполнена успешно
-- fail = элемент не найден или застрял 3+ шага
-- Все элементы приложения находятся внутри iframe (правая половина экрана)
-- textarea для ввода: selector=".input-textarea"
-- кнопка отправки: selector=".send-btn--active"
-- Перед вводом текста сначала кликни на textarea"""
+- Координаты x/y от 0.0 до 1.0 относительно ЭТОГО скриншота
+- action=type: text = реальные слова (напр. "Барсик", "корм 50г"), НЕ placeholder
+- done = этот шаг выполнен, переходим к следующему
+- fail = элемент не найден после 3 попыток
+- Если шаг говорит "Иначе переходи к следующему" и условие не выполнено — сразу done"""
 
     resp = model.generate_content([
         prompt,
@@ -141,12 +145,9 @@ async def ask_gemini(img: Image.Image, scenario_name: str, step_hint: str, histo
 
 
 async def open_miniapp(page):
-    """Navigate to bot and open the mini app."""
     await page.goto(f'https://web.telegram.org/k/#@{BOT_USERNAME}')
     await asyncio.sleep(8)
-    await save_screenshot(page, '00_loaded')
 
-    # Click the blue WebApp button (left of emoji, coordinates from observed screenshots)
     opened = False
     for sel in ['.bot-menu-button', 'button.bot-menu', '[class*="bot-menu"]']:
         try:
@@ -155,115 +156,124 @@ async def open_miniapp(page):
             break
         except Exception:
             pass
-
     if not opened:
         await page.mouse.click(622, 752)
 
     await asyncio.sleep(3)
 
-    # Confirm "LAUNCH" dialog
-    for sel in ['button >> text=LAUNCH', 'button >> text=Launch', 'button >> text=Открыть', '.popup-button.btn.primary']:
+    for sel in ['button >> text=LAUNCH', 'button >> text=Launch', '.popup-button.btn.primary']:
         try:
             await page.click(sel, timeout=3000)
-            print(f'  Confirmed dialog: {sel}')
+            print(f'  Dialog confirmed: {sel}')
             break
         except Exception:
             pass
 
     await asyncio.sleep(5)
-    await save_screenshot(page, '01_after_launch')
 
-    # Find mini app iframe
-    for frame in page.frames:
-        if frame.url and 'telegram' not in frame.url and 'github.io' in frame.url:
-            print(f'  Frame found: {frame.url[:80]}')
-            return frame
+    # Find frame
+    frame = None
+    for f in page.frames:
+        if f.url and 'github.io' in f.url:
+            frame = f
+            break
+    if not frame:
+        for f in page.frames:
+            if f.url and 'telegram' not in f.url and f.url.startswith('http'):
+                frame = f
+                break
 
-    # Fallback: any non-telegram http frame
-    for frame in page.frames:
-        if frame.url and 'telegram' not in frame.url and frame.url.startswith('http'):
-            print(f'  Frame found (fallback): {frame.url[:80]}')
-            return frame
+    # Find iframe element for screenshots
+    frame_el = None
+    for sel in ['iframe[src*="github.io"]', 'iframe[src*="petpath"]', 'iframe']:
+        el = await page.query_selector(sel)
+        if el:
+            frame_el = el
+            break
 
-    print('  No frame found')
-    return None
+    print(f'  Frame: {"found" if frame else "not found"}')
+    print(f'  Frame element: {"found" if frame_el else "not found"}')
+    return frame, frame_el
 
 
-async def execute_action(decision, frame, page):
-    """Execute click or type action, preferring frame over page."""
+async def execute_action(decision, frame, frame_el, page):
     action = decision['action']
-    target = frame or page
 
     if action == 'click':
         sel = (decision.get('selector') or '').strip()
         clicked = False
-        if sel:
+
+        if sel and frame:
             try:
-                await target.click(sel, timeout=3000)
+                await frame.click(sel, timeout=3000)
                 clicked = True
             except Exception:
                 pass
+
+        if not clicked and frame_el:
+            bbox = await frame_el.bounding_box()
+            if bbox:
+                x = int(bbox['x'] + decision.get('x', 0.5) * bbox['width'])
+                y = int(bbox['y'] + decision.get('y', 0.5) * bbox['height'])
+                await page.mouse.click(x, y)
+                clicked = True
+
         if not clicked:
-            # Use coordinates relative to the full page viewport
             vp = await page.evaluate('() => ({w: window.innerWidth, h: window.innerHeight})')
-            x = int(decision.get('x', 0.5) * vp['w'])
-            y = int(decision.get('y', 0.5) * vp['h'])
-            await page.mouse.click(x, y)
+            await page.mouse.click(
+                int(decision.get('x', 0.5) * vp['w']),
+                int(decision.get('y', 0.5) * vp['h'])
+            )
 
     elif action == 'type':
         text_to_type = decision.get('text', '')
-        try:
-            await target.keyboard.type(text_to_type)
-        except Exception:
+        if frame:
+            try:
+                await frame.keyboard.type(text_to_type)
+            except Exception:
+                await page.keyboard.type(text_to_type)
+        else:
             await page.keyboard.type(text_to_type)
 
 
-async def run_scenario(frame, page, scenario):
+async def run_scenario(frame, frame_el, page, scenario):
     name = scenario['name']
     steps = scenario['steps']
     history = []
     step_idx = 0
-    max_steps_per_hint = 6
 
     print(f'\n=== {name}')
 
-    for global_step in range(len(steps) * max_steps_per_hint):
+    for global_step in range(len(steps) * 8):
         if step_idx >= len(steps):
             break
 
         step_hint = steps[step_idx]
-        img = await save_screenshot(page, f'{name[:15]}_s{global_step}')
+        img = await save_screenshot(frame_el, page, f'{name[:12]}_s{global_step}')
 
         decision = await ask_gemini(img, name, step_hint, history)
         action = decision['action']
         val = decision.get('selector') or decision.get('text', '') or ''
-        print(f'  [{global_step}] {action} {val!r} — {decision["reasoning"]}')
+        print(f'  [{global_step}] step{step_idx} {action} {val!r} — {decision["reasoning"]}')
 
         if decision.get('status') == 'bug':
             print(f'       ⚠ BUG: {decision["issue"]}')
 
-        history.append({
-            'step': global_step,
-            'action': action,
-            'value': val,
-            'reasoning': decision['reasoning'],
-        })
+        history.append({'step': global_step, 'action': action, 'value': val, 'reasoning': decision['reasoning']})
 
         if action == 'done':
             step_idx += 1
-            if step_idx >= len(steps):
-                return {'scenario': name, 'status': 'PASS', 'steps': global_step}
+            print(f'  → Step {step_idx-1} done, moving to step {step_idx}')
             continue
 
         if action == 'fail':
-            return {'scenario': name, 'status': 'FAIL',
-                    'issue': decision.get('issue', ''), 'steps': global_step}
+            return {'scenario': name, 'status': 'FAIL', 'issue': decision.get('issue', ''), 'steps': global_step}
 
-        await execute_action(decision, frame, page)
+        await execute_action(decision, frame, frame_el, page)
         await asyncio.sleep(2)
 
-    return {'scenario': name, 'status': 'PASS' if step_idx >= len(steps) else 'TIMEOUT',
-            'steps': len(steps) * max_steps_per_hint}
+    status = 'PASS' if step_idx >= len(steps) else 'TIMEOUT'
+    return {'scenario': name, 'status': status, 'steps': step_idx * 8}
 
 
 def send_report(text):
@@ -285,27 +295,11 @@ async def main():
         page = await context.new_page()
 
         print('Opening Telegram Web...')
-        frame = await open_miniapp(page)
-        print(f'Mini app frame: {"found" if frame else "not found — using page"}')
-
-        # Clear localStorage in frame so we always start fresh
-        if frame:
-            try:
-                await frame.evaluate("localStorage.removeItem('_welcomed')")
-                await asyncio.sleep(1)
-                await page.reload()
-                await asyncio.sleep(6)
-                # Re-find frame after reload
-                for f in page.frames:
-                    if f.url and 'github.io' in f.url:
-                        frame = f
-                        break
-            except Exception:
-                pass
+        frame, frame_el = await open_miniapp(page)
 
         results = []
         for scenario in TEST_SCENARIOS:
-            result = await run_scenario(frame, page, scenario)
+            result = await run_scenario(frame, frame_el, page, scenario)
             results.append(result)
             await asyncio.sleep(3)
 

@@ -232,8 +232,7 @@ async def run_scenario(frame, page, scenario):
             break
 
         step_hint = steps[step_idx]
-        target_for_screenshot = frame or page
-        img = await save_screenshot(target_for_screenshot, f'{name[:15]}_s{global_step}')
+        img = await save_screenshot(page, f'{name[:15]}_s{global_step}')
 
         decision = await ask_gemini(img, name, step_hint, history)
         action = decision['action']

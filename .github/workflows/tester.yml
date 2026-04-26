@@ -29,3 +29,10 @@ jobs:
           REPORT_CHAT_ID: ${{ secrets.REPORT_CHAT_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python tester/tester.py
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: tester/screenshots/

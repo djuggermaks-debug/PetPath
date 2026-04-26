@@ -7,6 +7,7 @@ import requests
 import google.generativeai as genai
 from playwright.async_api import async_playwright
 from PIL import Image
+from pathlib import Path
 
 TELEGRAM_WEB_SESSION_B64 = os.environ['TELEGRAM_WEB_SESSION']
 BOT_USERNAME = 'petpath_app_bot'
@@ -17,6 +18,10 @@ GEMINI_API_KEY = os.environ['GEMINI_API_KEY']
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-2.5-flash')
 
+SCREENSHOTS_DIR = Path('tester/screenshots')
+SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
+screenshot_counter = 0
+
 TEST_SCENARIOS = [
     "Открыть мини-апп и пройти онбординг — добавить питомца с именем Тест",
     "Записать приём пищи питомца",
@@ -25,9 +30,14 @@ TEST_SCENARIOS = [
 ]
 
 
-async def screenshot_as_pil(target):
-    data = await target.screenshot()
-    return Image.open(io.BytesIO(data)), data
+async def save_screenshot(page, label=''):
+    global screenshot_counter
+    screenshot_counter += 1
+    path = SCREENSHOTS_DIR / f'{screenshot_counter:03d}_{label}.png'
+    data = await page.screenshot()
+    path.write_bytes(data)
+    img = Image.open(io.BytesIO(data))
+    return img, data
 
 
 async def ask_gemini(img: Image.Image, scenario: str, step: int, history: list):
@@ -80,45 +90,51 @@ async def ask_gemini(img: Image.Image, scenario: str, step: int, history: list):
 
 
 async def open_miniapp(page):
-    """Go to bot chat and click open mini app."""
+    """Navigate to bot chat and open the Mini App."""
     await page.goto(f'https://web.telegram.org/k/#@{BOT_USERNAME}')
-    await asyncio.sleep(6)
+    await asyncio.sleep(8)
+    await save_screenshot(page, 'after_navigate')
 
-    # Try clicking bot menu button (the coloured button next to input)
-    for selector in [
+    # Try known selectors for bot menu / mini app button
+    selectors = [
         '.bot-menu-button',
-        'button[class*="bot-menu"]',
-        '.btn-menu-toggle',
-    ]:
+        'button.bot-menu',
+        '.menu-button',
+        '[class*="bot-menu"]',
+        'button[class*="menu"]',
+    ]
+    for sel in selectors:
         try:
-            await page.click(selector, timeout=3000)
-            await asyncio.sleep(2)
+            await page.click(sel, timeout=2000)
+            print(f"  Нажал кнопку: {sel}")
+            await asyncio.sleep(3)
             break
         except Exception:
             pass
 
-    # Find mini app iframe
+    await save_screenshot(page, 'after_menu_click')
     await asyncio.sleep(3)
+
+    # Search for mini app iframe
     for frame in page.frames:
         if frame.url and 'telegram' not in frame.url and frame.url.startswith('http'):
+            print(f"  Найден frame: {frame.url}")
             return frame
+
+    print("  Iframe не найден — Gemini будет работать с основной страницей")
     return None
 
 
-async def run_scenario(page, frame_or_none, scenario):
+async def run_scenario(page, frame_or_none, scenario_name):
     target = frame_or_none or page
     history = []
-    last_screenshots = []
 
-    print(f"\n--- {scenario}")
+    print(f"\n--- {scenario_name}")
 
     for step in range(30):
-        img, raw = await screenshot_as_pil(target if frame_or_none else page)
-        last_screenshots.append(raw)
-        if len(last_screenshots) > 5:
-            last_screenshots.pop(0)
+        img, _ = await save_screenshot(page, f'scenario_{scenario_name[:20]}_step{step}')
 
-        decision = await ask_gemini(img, scenario, step, history)
+        decision = await ask_gemini(img, scenario_name, step, history)
         action = decision['action']
         print(f"  [{step}] {action} '{decision.get('selector') or decision.get('text','')}' — {decision['reasoning']}")
 
@@ -133,10 +149,10 @@ async def run_scenario(page, frame_or_none, scenario):
         })
 
         if action == 'done':
-            return {'scenario': scenario, 'status': 'PASS', 'steps': step}
+            return {'scenario': scenario_name, 'status': 'PASS', 'steps': step}
 
         if action == 'fail':
-            return {'scenario': scenario, 'status': 'FAIL',
+            return {'scenario': scenario_name, 'status': 'FAIL',
                     'issue': decision.get('issue', ''), 'steps': step}
 
         if action == 'click':
@@ -144,7 +160,7 @@ async def run_scenario(page, frame_or_none, scenario):
             clicked = False
             if sel:
                 try:
-                    await target.click(sel, timeout=3000)
+                    await page.click(sel, timeout=3000)
                     clicked = True
                 except Exception:
                     pass
@@ -155,11 +171,11 @@ async def run_scenario(page, frame_or_none, scenario):
                 await page.mouse.click(x, y)
 
         elif action == 'type':
-            await target.keyboard.type(decision.get('text', ''))
+            await page.keyboard.type(decision.get('text', ''))
 
         await asyncio.sleep(2)
 
-    return {'scenario': scenario, 'status': 'TIMEOUT', 'steps': 30}
+    return {'scenario': scenario_name, 'status': 'TIMEOUT', 'steps': 30}
 
 
 def send_report(text):
@@ -181,8 +197,10 @@ async def main():
         page = await context.new_page()
 
         print("Открываем Telegram Web...")
+        await save_screenshot(page, '00_start')
+
         mini_frame = await open_miniapp(page)
-        print(f"Мини-апп frame: {mini_frame.url if mini_frame else 'не найден, используем page'}")
+        print(f"Мини-апп frame: {mini_frame.url if mini_frame else 'не найден'}")
 
         results = []
         for scenario in TEST_SCENARIOS:

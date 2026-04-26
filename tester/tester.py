@@ -12,6 +12,8 @@ from pathlib import Path
 TELEGRAM_WEB_SESSION = os.environ['TELEGRAM_WEB_SESSION']
 BOT_USERNAME = 'petpath_app_bot'
 GEMINI_API_KEY = os.environ['GEMINI_API_KEY']
+REPORT_BOT_TOKEN = os.environ.get('REPORT_BOT_TOKEN', '')
+REPORT_CHAT_ID = os.environ.get('REPORT_CHAT_ID', '')
 
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-2.5-flash')
@@ -22,9 +24,7 @@ _counter = 0
 
 
 def send_report(text: str):
-    # Save report to file for workflow email step
-    Path('tester/report.txt').write_text(text, encoding='utf-8')
-    print('  Report saved to tester/report.txt')
+    print(text)
 
 
 # (message, tab_to_check, check_question)

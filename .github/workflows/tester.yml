@@ -34,16 +34,3 @@ jobs:
         with:
           name: screenshots
           path: tester/screenshots/
-
-      - name: Send email report
-        if: always()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          username: ${{ secrets.SMTP_USERNAME }}
-          password: ${{ secrets.SMTP_PASSWORD }}
-          to: ${{ secrets.REPORT_EMAIL }}
-          from: PetPath Tester <${{ secrets.SMTP_USERNAME }}>
-          subject: 'PetPath Test — ${{ job.status }}'
-          body: file://tester/report.txt

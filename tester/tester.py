@@ -1,15 +1,14 @@
 import asyncio
 import os
 import json
+import base64
+import io
 import requests
 import google.generativeai as genai
-from telethon import TelegramClient
-from telethon.sessions import StringSession
-from telethon.tl.types import ReplyInlineMarkup, ReplyKeyboardMarkup
+from playwright.async_api import async_playwright
+from PIL import Image
 
-API_ID = int(os.environ['TELEGRAM_API_ID'])
-API_HASH = os.environ['TELEGRAM_API_HASH']
-SESSION_STRING = os.environ['TELEGRAM_SESSION']
+TELEGRAM_WEB_SESSION_B64 = os.environ['TELEGRAM_WEB_SESSION']
 BOT_USERNAME = 'petpath_app_bot'
 REPORT_BOT_TOKEN = os.environ['REPORT_BOT_TOKEN']
 REPORT_CHAT_ID = os.environ['REPORT_CHAT_ID']
@@ -19,157 +18,193 @@ genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-2.5-flash')
 
 TEST_SCENARIOS = [
-    "Запустить бота /start и пройти онбординг — добавить питомца",
+    "Открыть мини-апп и пройти онбординг — добавить питомца с именем Тест",
     "Записать приём пищи питомца",
     "Посмотреть историю питания",
-    "Проверить настройки профиля питомца",
+    "Проверить настройки и профиль питомца",
 ]
 
 
-def extract_buttons(message):
-    buttons = []
-    if not message.reply_markup:
-        return buttons
-    if isinstance(message.reply_markup, ReplyInlineMarkup):
-        for row in message.reply_markup.rows:
-            for btn in row.buttons:
-                buttons.append({'text': btn.text, 'type': 'inline'})
-    elif isinstance(message.reply_markup, ReplyKeyboardMarkup):
-        for row in message.reply_markup.rows:
-            for btn in row.buttons:
-                buttons.append({'text': btn.text, 'type': 'keyboard'})
-    return buttons
+async def screenshot_as_pil(target):
+    data = await target.screenshot()
+    return Image.open(io.BytesIO(data)), data
 
 
-async def click_button_by_text(message, text):
-    if not message.reply_markup:
-        return False
-    if isinstance(message.reply_markup, ReplyInlineMarkup):
-        for row in message.reply_markup.rows:
-            for btn in row.buttons:
-                if btn.text == text:
-                    await message.click(text=text)
-                    return True
-    return False
+async def ask_gemini(img: Image.Image, scenario: str, step: int, history: list):
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    img_b64 = base64.b64encode(buf.getvalue()).decode()
 
+    recent = "\n".join(
+        f"  шаг {h['step']}: {h['action']} '{h.get('value','')}' — {h['reasoning']}"
+        for h in history[-5:]
+    ) or "  (начало)"
 
-async def ask_gemini(log, buttons, scenario):
-    prompt = f"""Ты QA-тестировщик Telegram бота PetPath (трекер питания домашних животных).
-Сценарий: {scenario}
+    prompt = f"""Ты QA-тестировщик мини-приложения PetPath (трекер питания домашних животных).
+Текущий сценарий: {scenario}
+Шаг: {step}
+Последние действия:
+{recent}
 
-История диалога с ботом:
-{json.dumps(log, ensure_ascii=False, indent=2)}
-
-Доступные кнопки: {[b['text'] for b in buttons]}
-
-Реши что делать дальше. Ответь ТОЛЬКО валидным JSON без markdown:
+Посмотри на скриншот и реши что делать дальше.
+Ответь ТОЛЬКО валидным JSON без markdown-блоков:
 {{
-  "action": "click_button" | "send_text" | "done" | "fail",
-  "value": "текст кнопки или сообщения (пусто если done/fail)",
-  "reasoning": "короткое объяснение",
+  "action": "click" | "type" | "done" | "fail",
+  "selector": "CSS или текст элемента (для click, предпочти это)",
+  "x": 0.5,
+  "y": 0.5,
+  "text": "текст для ввода (для type)",
+  "reasoning": "одна строка",
   "status": "ok" | "bug",
-  "issue": "описание бага если status=bug, иначе пусто"
+  "issue": "описание если bug"
 }}
 
 Правила:
-- done = сценарий успешно завершён
-- fail = бот не отвечает или поведение сломано
-- bug = что-то работает неправильно но можно продолжить
-- Не нажимай одну кнопку дважды подряд
-- Если застрял больше 3 шагов — action: fail"""
+- done = сценарий завершён успешно
+- fail = сломано или завис на 3+ шага
+- selector важнее координат; координаты 0.0–1.0 от размера экрана
+- не повторяй одно действие два раза подряд"""
 
-    response = model.generate_content(prompt)
-    text = response.text.strip()
+    resp = model.generate_content([
+        prompt,
+        {'mime_type': 'image/png', 'data': img_b64}
+    ])
+
+    text = resp.text.strip()
     if '```' in text:
-        text = text.split('```')[1]
+        parts = text.split('```')
+        text = parts[1] if len(parts) > 1 else parts[0]
         if text.startswith('json'):
             text = text[4:]
-        text = text.split('```')[0].strip()
-    return json.loads(text)
+    return json.loads(text.strip())
+
+
+async def open_miniapp(page):
+    """Go to bot chat and click open mini app."""
+    await page.goto(f'https://web.telegram.org/k/#@{BOT_USERNAME}')
+    await asyncio.sleep(6)
+
+    # Try clicking bot menu button (the coloured button next to input)
+    for selector in [
+        '.bot-menu-button',
+        'button[class*="bot-menu"]',
+        '.btn-menu-toggle',
+    ]:
+        try:
+            await page.click(selector, timeout=3000)
+            await asyncio.sleep(2)
+            break
+        except Exception:
+            pass
+
+    # Find mini app iframe
+    await asyncio.sleep(3)
+    for frame in page.frames:
+        if frame.url and 'telegram' not in frame.url and frame.url.startswith('http'):
+            return frame
+    return None
+
+
+async def run_scenario(page, frame_or_none, scenario):
+    target = frame_or_none or page
+    history = []
+    last_screenshots = []
+
+    print(f"\n--- {scenario}")
+
+    for step in range(30):
+        img, raw = await screenshot_as_pil(target if frame_or_none else page)
+        last_screenshots.append(raw)
+        if len(last_screenshots) > 5:
+            last_screenshots.pop(0)
+
+        decision = await ask_gemini(img, scenario, step, history)
+        action = decision['action']
+        print(f"  [{step}] {action} '{decision.get('selector') or decision.get('text','')}' — {decision['reasoning']}")
+
+        if decision.get('status') == 'bug':
+            print(f"       BUG: {decision['issue']}")
+
+        history.append({
+            'step': step,
+            'action': action,
+            'value': decision.get('selector') or decision.get('text', ''),
+            'reasoning': decision['reasoning'],
+        })
+
+        if action == 'done':
+            return {'scenario': scenario, 'status': 'PASS', 'steps': step}
+
+        if action == 'fail':
+            return {'scenario': scenario, 'status': 'FAIL',
+                    'issue': decision.get('issue', ''), 'steps': step}
+
+        if action == 'click':
+            sel = decision.get('selector', '').strip()
+            clicked = False
+            if sel:
+                try:
+                    await target.click(sel, timeout=3000)
+                    clicked = True
+                except Exception:
+                    pass
+            if not clicked:
+                vp = await page.evaluate('() => ({w: window.innerWidth, h: window.innerHeight})')
+                x = int(decision.get('x', 0.5) * vp['w'])
+                y = int(decision.get('y', 0.5) * vp['h'])
+                await page.mouse.click(x, y)
+
+        elif action == 'type':
+            await target.keyboard.type(decision.get('text', ''))
+
+        await asyncio.sleep(2)
+
+    return {'scenario': scenario, 'status': 'TIMEOUT', 'steps': 30}
 
 
 def send_report(text):
-    url = f"https://api.telegram.org/bot{REPORT_BOT_TOKEN}/sendMessage"
-    requests.post(url, json={
-        'chat_id': REPORT_CHAT_ID,
-        'text': text,
-        'parse_mode': 'HTML'
-    })
-
-
-async def run_scenario(client, bot, scenario):
-    log = []
-    print(f"\n--- Сценарий: {scenario}")
-
-    await client.send_message(bot, '/start')
-    await asyncio.sleep(4)
-
-    for step in range(20):
-        messages = await client.get_messages(bot, limit=3)
-        if not messages:
-            return {'scenario': scenario, 'status': 'FAIL', 'issue': 'Бот не отвечает', 'steps': step}
-
-        last = messages[0]
-        buttons = extract_buttons(last)
-        msg_text = last.text or last.message or ''
-
-        log.append({
-            'step': step,
-            'bot': msg_text[:300],
-            'buttons': [b['text'] for b in buttons]
-        })
-
-        decision = await ask_gemini(log, buttons, scenario)
-        print(f"  [{step}] {decision['action']} '{decision.get('value', '')}' — {decision['reasoning']}")
-
-        if decision['status'] == 'bug':
-            print(f"  BUG: {decision['issue']}")
-
-        if decision['action'] == 'done':
-            return {'scenario': scenario, 'status': 'PASS', 'steps': step}
-
-        if decision['action'] == 'fail':
-            return {'scenario': scenario, 'status': 'FAIL', 'issue': decision.get('issue', ''), 'steps': step}
-
-        if decision['action'] == 'click_button':
-            clicked = await click_button_by_text(last, decision['value'])
-            if not clicked:
-                await client.send_message(bot, decision['value'])
-        elif decision['action'] == 'send_text':
-            await client.send_message(bot, decision['value'])
-
-        await asyncio.sleep(3)
-
-    return {'scenario': scenario, 'status': 'TIMEOUT', 'steps': 20}
+    requests.post(
+        f'https://api.telegram.org/bot{REPORT_BOT_TOKEN}/sendMessage',
+        json={'chat_id': REPORT_CHAT_ID, 'text': text, 'parse_mode': 'HTML'}
+    )
 
 
 async def main():
-    client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
-    await client.start()
+    storage_state = json.loads(base64.b64decode(TELEGRAM_WEB_SESSION_B64).decode())
 
-    bot = await client.get_entity(BOT_USERNAME)
-    results = []
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        context = await browser.new_context(
+            storage_state=storage_state,
+            viewport={'width': 1280, 'height': 800}
+        )
+        page = await context.new_page()
 
-    for scenario in TEST_SCENARIOS:
-        result = await run_scenario(client, bot, scenario)
-        results.append(result)
-        await asyncio.sleep(5)
+        print("Открываем Telegram Web...")
+        mini_frame = await open_miniapp(page)
+        print(f"Мини-апп frame: {mini_frame.url if mini_frame else 'не найден, используем page'}")
 
-    await client.disconnect()
+        results = []
+        for scenario in TEST_SCENARIOS:
+            result = await run_scenario(page, mini_frame, scenario)
+            results.append(result)
+            await asyncio.sleep(4)
+
+        await browser.close()
 
     passed = sum(1 for r in results if r['status'] == 'PASS')
     total = len(results)
+    emoji = '✅' if passed == total else '⚠️'
 
-    report = f"<b>🤖 PetPath Test Report</b>\n"
-    report += f"<b>{'✅ Все тесты прошли!' if passed == total else f'⚠️ {passed}/{total} прошло'}</b>\n\n"
-
+    report = f"<b>🤖 PetPath UI Test Report</b>\n"
+    report += f"<b>{emoji} {passed}/{total} сценариев прошло</b>\n\n"
     for r in results:
-        icon = "✅" if r['status'] == 'PASS' else "❌"
+        icon = '✅' if r['status'] == 'PASS' else '❌'
         report += f"{icon} {r['scenario'][:60]}\n"
         if r['status'] != 'PASS':
             report += f"   └ {r.get('issue', r['status'])} (шаг {r['steps']})\n"
 
-    print("\n" + report)
+    print('\n' + report)
     send_report(report)
 
 

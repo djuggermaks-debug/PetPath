@@ -11,8 +11,6 @@ from pathlib import Path
 
 TELEGRAM_WEB_SESSION = os.environ['TELEGRAM_WEB_SESSION']
 BOT_USERNAME = 'petpath_app_bot'
-REPORT_BOT_TOKEN = os.environ['REPORT_BOT_TOKEN']
-REPORT_CHAT_ID = os.environ['REPORT_CHAT_ID']
 GEMINI_API_KEY = os.environ['GEMINI_API_KEY']
 
 genai.configure(api_key=GEMINI_API_KEY)
@@ -24,9 +22,9 @@ _counter = 0
 
 
 def send_report(text: str):
-    url = f'https://api.telegram.org/bot{REPORT_BOT_TOKEN}/sendMessage'
-    resp = requests.post(url, data={'chat_id': REPORT_CHAT_ID, 'text': text, 'parse_mode': 'HTML'})
-    print(f'  Telegram report: {resp.status_code} {resp.text[:200]}')
+    # Save report to file for workflow email step
+    Path('tester/report.txt').write_text(text, encoding='utf-8')
+    print('  Report saved to tester/report.txt')
 
 
 # (message, tab_to_check, check_question)

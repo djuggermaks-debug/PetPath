@@ -25,8 +25,6 @@ jobs:
       - name: Run tester
         env:
           TELEGRAM_WEB_SESSION: ${{ secrets.TELEGRAM_WEB_SESSION }}
-          REPORT_BOT_TOKEN: ${{ secrets.REPORT_BOT_TOKEN }}
-          REPORT_CHAT_ID: ${{ secrets.REPORT_CHAT_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python tester/tester.py
 
@@ -36,3 +34,16 @@ jobs:
         with:
           name: screenshots
           path: tester/screenshots/
+
+      - name: Send email report
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          to: ${{ secrets.REPORT_EMAIL }}
+          from: PetPath Tester <${{ secrets.SMTP_USERNAME }}>
+          subject: 'PetPath Test — ${{ job.status }}'
+          body: file://tester/report.txt

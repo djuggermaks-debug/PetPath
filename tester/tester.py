@@ -22,6 +22,11 @@ SCREENSHOTS_DIR = Path('tester/screenshots')
 SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
 _counter = 0
 
+
+def send_report(text: str):
+    url = f'https://api.telegram.org/bot{REPORT_BOT_TOKEN}/sendMessage'
+    requests.post(url, data={'chat_id': REPORT_CHAT_ID, 'text': text, 'parse_mode': 'HTML'})
+
 # Messages to send through the InputBar — AI will parse and route them
 TEST_MESSAGES = [
     "My pet's name is Барсик",
